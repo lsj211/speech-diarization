@@ -1,0 +1,68 @@
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.conda/
+
+# Local datasets and generated manifests
+data/raw/
+data/wavs/*
+data/rttm/*
+data/manifests/*.json
+
+!data/README.md
+!data/raw/README.md
+!data/wavs/README.md
+!data/rttm/README.md
+!data/manifests/README.md
+
+# Experiment outputs and downloaded models
+results/*
+models/*
+
+!results/README.md
+!models/README.md
+
+# Audio, annotations, archives, and large local artifacts
+*.wav
+*.flac
+*.mp3
+*.m4a
+*.pcm
+*.TextGrid
+*.rttm
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# Model/checkpoint files
+*.nemo
+*.ckpt
+*.pt
+*.pth
+*.onnx
+
+# Reports and local documents generated for submission
+*.pdf
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
