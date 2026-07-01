@@ -12,35 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from lightning.pytorch import seed_everything
 from omegaconf import OmegaConf
 
 from nemo.collections.asr.models import ClusteringDiarizer
+from nemo.collections.asr.parts.utils.speaker_utils import audio_rttm_map
 from nemo.core.config import hydra_runner
 from nemo.utils import logging
 
 """
-This script demonstrates how to use run speaker diarization.
-Usage:
-  python offline_diar_infer.py \
-    diarizer.manifest_filepath=<path to manifest file> \
-    diarizer.out_dir='demo_output' \
-    diarizer.speaker_embeddings.model_path=<pretrained modelname or path to .nemo> \
-    diarizer.vad.model_path='vad_marblenet' \
-    diarizer.speaker_embeddings.parameters.save_embeddings=False
+Run only the NeMo VAD stage from the clustering diarizer.
 
-Check out whole parameters in ./conf/offline_diarization.yaml and their meanings.
-For details, have a look at <NeMo_git_root>/tutorials/speaker_tasks/Speaker_Diarization_Inference.ipynb
+This is useful for multi-channel VAD fusion: run VAD once for each extracted
+single channel, then merge the resulting vad_outputs/*.txt files into one
+external_vad_manifest.
 """
 
 seed_everything(42)
 
 
-@hydra_runner(config_path="../conf/inference", config_name="diar_infer_aishell4_local.yaml")
+@hydra_runner(config_path="../conf/inference", config_name="diar_infer_meeting.yaml")
 def main(cfg):
     logging.info(f'Hydra config: {OmegaConf.to_yaml(cfg)}')
     sd_model = ClusteringDiarizer(cfg=cfg).to(cfg.device)
-    sd_model.diarize()
+
+    sd_model._out_dir = cfg.diarizer.out_dir
+    os.makedirs(sd_model._out_dir, exist_ok=True)
+    sd_model._vad_dir = os.path.join(sd_model._out_dir, 'vad_outputs')
+    sd_model._vad_out_file = os.path.join(sd_model._vad_dir, 'vad_out.json')
+    sd_model.AUDIO_RTTM_MAP = audio_rttm_map(cfg.diarizer.manifest_filepath)
+
+    sd_model._perform_speech_activity_detection()
+    logging.info(f'VAD outputs are saved in {os.path.abspath(sd_model._vad_dir)}')
 
 
 if __name__ == '__main__':

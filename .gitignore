@@ -16,11 +16,11 @@ venv/
 env/
 .conda/
 
-# Local datasets and generated manifests
-data/raw/
-data/wavs/*
-data/rttm/*
-data/manifests/*.json
+# Ignore all dataset/generated files under data, keep README placeholders
+data/**
+!data/
+!data/**/
+!data/**/README.md
 
 !data/README.md
 !data/raw/README.md
