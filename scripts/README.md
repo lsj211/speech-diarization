@@ -1,126 +1,195 @@
-﻿# Scripts 使用流程
+# Scripts
 
-本项目当前使用 AISHELL-4 做说话人日志实验，主线是 NVIDIA NeMo clustering diarizer：
+放置本项目的数据准备、运行 baseline、评测 DER、画时间轴等脚本。
 
-1. 将 AISHELL-4 8 通道音频拆成单通道。
-2. 对每个通道分别运行 NeMo VAD。
-3. 将 8 个通道的 VAD 结果取并集，生成 `external_vad_manifest`。
-4. 使用 NeMo 的 speaker embedding + clustering 完成说话人日志。
+## 1. 启动环境
 
-以下命令默认在 WSL2 Ubuntu 中执行，项目目录为：
+每次新开 PowerShell 后，先激活 conda 环境：
 
-```bash
-/home/enovo/Speech_Major
+```powershell
+conda activate speech_diar
 ```
 
-## 1. 激活环境
+如果已经在 `baseline/NeMo` 执行过 `pip install -e ".[asr]"`，不需要设置 `PYTHONPATH`。可以用下面命令确认当前环境导入的是项目内源码：
 
-```bash
-cd ~/Speech_Major
-source .venv/bin/activate
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+```powershell
+python -c "import nemo; print(nemo.__file__)"
 ```
 
-检查 CUDA：
+只有在没有安装 editable 包、只是直接使用 `baseline/NeMo/nemo` 源码时，才需要临时设置：
 
-```bash
-python3 -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```powershell
+$env:PYTHONPATH="H:\Speech_Major\baseline\NeMo;$env:PYTHONPATH"
 ```
 
-## 2. 准备 1 条测试 Manifest
+## 2. 设置模型缓存目录
 
-用于最终 diarization 的主 manifest，需要包含音频路径、参考 RTTM 和真实说话人数。
+默认情况下，NeMo 模型会下载到用户目录下的 `.cache`。为了让模型都放在项目目录中，每次运行前设置：
 
-```bash
-cd ~/Speech_Major
+```powershell
+mkdir H:\Speech_Major\models\nemo_cache
+mkdir H:\Speech_Major\models\hf_cache
 
-python3 scripts/prepare_aishell4_manifest.py \
-  --audio-dir /home/enovo/Speech_Major/data/wavs_mono \
-  --rttm-dir /home/enovo/Speech_Major/data/rttm \
-  --limit 1 \
-  --with-num-speakers \
-  --output /home/enovo/Speech_Major/data/manifests/aishell4_test_manifest_one_mono_wsl.json
+$env:NEMO_CACHE_DIR="H:\Speech_Major\models\nemo_cache"
+$env:HF_HOME="H:\Speech_Major\models\hf_cache"
 ```
 
-## 3. 抽取 8 个单通道音频
+确认设置：
 
-`convert_to_mono.py` 默认可以平均通道，也可以用 `--channel` 指定通道。这里分别抽取 ch0 到 ch7。
-
-```bash
-cd ~/Speech_Major
-
-for ch in 0 1 2 3 4 5 6 7; do
-  python3 scripts/convert_to_mono.py \
-    --input-dir data/wavs \
-    --output-dir data/wavs_ch${ch} \
-    --channel ${ch}
-done
+```powershell
+echo $env:NEMO_CACHE_DIR
+echo $env:HF_HOME
 ```
 
-## 4. 为每个通道生成测试 Manifest
-
-每个通道只取同一条测试音频。
-
-```bash
-cd ~/Speech_Major
-
-for ch in 0 1 2 3 4 5 6 7; do
-  python3 scripts/prepare_aishell4_manifest.py \
-    --audio-dir /home/enovo/Speech_Major/data/wavs_ch${ch} \
-    --rttm-dir /home/enovo/Speech_Major/data/rttm \
-    --limit 1 \
-    --with-num-speakers \
-    --output /home/enovo/Speech_Major/data/manifests/aishell4_test_one_ch${ch}.json
-done
-```
-
-确认每个 manifest 只有 1 行：
-
-```bash
-wc -l data/manifests/aishell4_test_one_ch*.json
-```
-
-## 5. 对每个通道只运行 NeMo VAD
-
-`vad_only_infer.py` 只生成 `vad_outputs`，不进行 embedding 和 clustering。
-
-```bash
-cd ~/Speech_Major
-source .venv/bin/activate
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-
-cd ~/Speech_Major/baseline/NeMo/examples/speaker_tasks/diarization/clustering_diarizer
-
-for ch in 0 1 2 3 4 5 6 7; do
-  python3 -u vad_only_infer.py \
-    --config-name=diar_infer_aishell4_local \
-    diarizer.manifest_filepath=/home/enovo/Speech_Major/data/manifests/aishell4_test_one_ch${ch}.json \
-    diarizer.out_dir=/home/enovo/Speech_Major/results/vad_ch${ch} \
-    diarizer.vad.model_path=/home/enovo/Speech_Major/models/nemo_cache/vad_multilingual_marblenet/670f425c7f186060b7a7268ba6dfacb2/vad_multilingual_marblenet.nemo \
-    diarizer.vad.external_vad_manifest=null \
-    batch_size=2 \
-    device=cuda
-done
-```
-
-输出示例：
+说明：
 
 ```text
-results/vad_ch0/vad_outputs/L_R003S01C02.txt
-results/vad_ch1/vad_outputs/L_R003S01C02.txt
-...
-results/vad_ch7/vad_outputs/L_R003S01C02.txt
+NEMO_CACHE_DIR  控制 NeMo/NGC 模型缓存，如 vad_multilingual_marblenet、titanet_large
+HF_HOME         控制 HuggingFace 模型缓存，如 Sortformer
 ```
 
-## 6. 合并 8 通道 VAD 并集
+## 3. 生成 AISHELL-4 Manifest
 
-`merge_vad_union.py` 会读取各通道的 `vad_outputs/*.txt`，对 speech 区间取并集并合并相邻短间隔，输出 NeMo 可用的 `external_vad_manifest`。
+当前默认从 `data/wavs` 和 `data/rttm` 读取 AISHELL-4 test 数据。
+
+如果原始音频是多通道，先转成单通道：
+
+```powershell
+cd H:\Speech_Major
+pip install soundfile
+python scripts\convert_to_mono.py --input-dir data\wavs --output-dir data\wavs_mono
+```
+
+生成全量 manifest：
+
+```powershell
+cd H:\Speech_Major
+python scripts\prepare_aishell4_manifest.py
+```
+
+生成 3 条小样本 manifest：
+
+```powershell
+cd H:\Speech_Major
+python scripts\prepare_aishell4_manifest.py `
+  --audio-dir data\wavs_mono `
+  --rttm-dir data\rttm `
+  --limit 3 `
+  --output data\manifests\aishell4_test_manifest_small.json
+```
+
+生成带真实说话人数的全量 manifest：
+
+```powershell
+cd H:\Speech_Major
+python scripts\prepare_aishell4_manifest.py `
+  --with-num-speakers `
+  --output data\manifests\aishell4_test_manifest_oracle_spk.json
+```
+
+生成带真实说话人数的 3 条小样本 manifest：
+
+```powershell
+cd H:\Speech_Major
+python scripts\prepare_aishell4_manifest.py `
+  --limit 3 `
+  --with-num-speakers `
+  --output data\manifests\aishell4_test_manifest_small_oracle_spk.json
+```
+
+## 4. 小规模 Baseline 测试
+
+先跑 3 条样本，确认环境、模型下载、manifest、输出目录都没问题。
+
+```powershell
+conda activate speech_diar
+
+$env:NEMO_CACHE_DIR="H:\Speech_Major\models\nemo_cache"
+$env:HF_HOME="H:\Speech_Major\models\hf_cache"
+
+cd H:\Speech_Major\baseline\NeMo\examples\speaker_tasks\diarization
+
+python clustering_diarizer\offline_diar_infer.py `
+  diarizer.manifest_filepath=H:\Speech_Major\data\manifests\aishell4_test_manifest_small_mono.json `
+  diarizer.out_dir=H:\Speech_Major\results\nemo_cluster_small `
+  diarizer.vad.model_path=vad_multilingual_marblenet `
+  diarizer.speaker_embeddings.model_path=titanet_large `
+  diarizer.speaker_embeddings.parameters.save_embeddings=False
+```
+
+查看输出：
+
+```powershell
+dir H:\Speech_Major\results\nemo_cluster_small
+dir H:\Speech_Major\results\nemo_cluster_small\pred_rttms
+```
+
+## 5. 已知说话人数对比实验
+
+先生成小样本 oracle manifest：
+
+```powershell
+cd H:\Speech_Major
+python scripts\prepare_aishell4_manifest.py `
+  --limit 3 `
+  --with-num-speakers `
+  --output data\manifests\aishell4_test_manifest_small_oracle_spk.json
+```
+
+再运行 NeMo，并打开 `oracle_num_speakers`：
+
+```powershell
+conda activate speech_diar
+
+$env:NEMO_CACHE_DIR="H:\Speech_Major\models\nemo_cache"
+$env:HF_HOME="H:\Speech_Major\models\hf_cache"
+
+cd H:\Speech_Major\baseline\NeMo\examples\speaker_tasks\diarization
+
+python clustering_diarizer\offline_diar_infer.py `
+  diarizer.manifest_filepath=H:\Speech_Major\data\manifests\aishell4_test_manifest_small_oracle_spk.json `
+  diarizer.out_dir=H:\Speech_Major\results\nemo_cluster_small_oracle_spk `
+  diarizer.vad.model_path=vad_multilingual_marblenet `
+  diarizer.speaker_embeddings.model_path=titanet_large `
+  diarizer.speaker_embeddings.parameters.save_embeddings=False `
+  diarizer.clustering.parameters.oracle_num_speakers=True
+```
+
+## 6. 多通道 VAD 投票融合
+
+第一步先做 k-of-n 投票融合：只有至少 k 个通道同时检测为 speech，才保留该时间段。
+
+当前 1 条样本 `L_R003S01C02` 上的最佳参数：
+
+```text
+vote_threshold      2
+merge_gap           0.2
+min_duration        0.05
+pad_onset           0.2
+pad_offset          0.2
+external manifest   data/manifests/aishell4_external_vad_vote2_pad02_one.json
+output dir          results/nemo_cluster_one_external_vad_vote2_pad02
+```
+
+当前对比结果：
+
+```text
+原始 union external VAD     DER 17.92% | FA 57.66 | MISS 177.00 | CONF 69.28
+vote2, no padding           DER 21.84% | FA 36.03 | MISS 260.89 | CONF 73.40
+vote2 + pad 0.2/0.2         DER 11.11% | FA 61.79 | MISS 78.43  | CONF 48.16
+```
+
+说明：`vote2` 可以降低误报，但不加边界补偿会明显增加漏检；加入 0.2s 前后 padding 后，漏检大幅下降，是当前第一阶段最佳配置。
+
+### 6.1 生成 1 条样本最佳投票融合 manifest
+
+在 WSL 项目目录中运行，使用项目虚拟环境：
 
 ```bash
-cd ~/Speech_Major
+cd /home/enovo/Speech_Major
 source .venv/bin/activate
 
-python3 scripts/merge_vad_union.py \
+python scripts/merge_vad_vote.py \
   --vad-dirs \
     results/vad_ch0/vad_outputs \
     results/vad_ch1/vad_outputs \
@@ -130,102 +199,50 @@ python3 scripts/merge_vad_union.py \
     results/vad_ch5/vad_outputs \
     results/vad_ch6/vad_outputs \
     results/vad_ch7/vad_outputs \
-  --audio-dir /home/enovo/Speech_Major/data/wavs_mono \
-  --output /home/enovo/Speech_Major/data/manifests/aishell4_external_vad_union_one.json \
+  --audio-dir data/wavs_mono \
+  --output data/manifests/aishell4_external_vad_vote2_pad02_one.json \
+  --vote-threshold 2 \
   --merge-gap 0.2 \
-  --min-duration 0.05
+  --min-duration 0.05 \
+  --pad-onset 0.2 \
+  --pad-offset 0.2
 ```
 
-说明：
-
-- `--vad-dirs`：8 个通道各自的 VAD 输出目录。
-- `--audio-dir`：后续 speaker embedding 使用的单通道音频目录。当前使用平均 mono，也可以换成表现最好的 `data/wavs_chX`。
-- `--merge-gap`：两个 speech 段间隔小于该值时合并。
-- `--min-duration`：丢弃过短 speech 段。
-
-## 7. 使用外部 VAD 并集运行 NeMo Diarization
-
-配置文件：
-
-```text
-baseline/NeMo/examples/speaker_tasks/diarization/conf/inference/diar_infer_aishell4_local.yaml
-```
-
-当前关键配置应为：
-
-```yaml
-diarizer:
-  manifest_filepath: /home/enovo/Speech_Major/data/manifests/aishell4_test_manifest_one_mono_wsl.json
-  out_dir: /home/enovo/Speech_Major/results/nemo_cluster_one_external_vad_union_yaml
-  oracle_vad: False
-
-  vad:
-    model_path: null
-    external_vad_manifest: /home/enovo/Speech_Major/data/manifests/aishell4_external_vad_union_one.json
-```
-
-运行：
+运行 diarization：
 
 ```bash
-cd ~/Speech_Major
+cd /home/enovo/Speech_Major/baseline/NeMo/examples/speaker_tasks/diarization
+
+python clustering_diarizer/offline_diar_infer.py \
+  --config-name=diar_infer_aishell4_local \
+  diarizer.manifest_filepath=/home/enovo/Speech_Major/data/manifests/aishell4_test_manifest_one_mono_wsl.json \
+  diarizer.vad.external_vad_manifest=/home/enovo/Speech_Major/data/manifests/aishell4_external_vad_vote2_pad02_one.json \
+  diarizer.out_dir=/home/enovo/Speech_Major/results/nemo_cluster_one_external_vad_vote2_pad02
+```
+
+### 6.2 生成 3 条样本投票融合 manifest
+
+把 1 条样本最佳参数扩展到 3 条样本：
+
+```bash
+cd /home/enovo/Speech_Major
 source .venv/bin/activate
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-cd ~/Speech_Major/baseline/NeMo/examples/speaker_tasks/diarization/clustering_diarizer
-
-python3 -u offline_diar_infer.py --config-name=diar_infer_aishell4_local
-```
-
-## 8. 查看结果
-
-预测 RTTM：
-
-```bash
-ls -lh /home/enovo/Speech_Major/results/nemo_cluster_one_external_vad_union_yaml/pred_rttms
-head -5 /home/enovo/Speech_Major/results/nemo_cluster_one_external_vad_union_yaml/pred_rttms/L_R003S01C02.rttm
-```
-
-重点关注日志中的指标：
-
-```text
-DER
-MISS
-FA
-CER
-Spk. Count Acc.
-```
-
-当前实验主要目标是降低 `MISS`，验证多通道 VAD 并集是否能缓解 AISHELL-4 远场音频中的 VAD 漏检问题。
-
-## 9. 常用对照实验
-
-### 内置 NeMo VAD
-
-将配置改回：
-
-```yaml
-vad:
-  model_path: /home/enovo/Speech_Major/models/nemo_cache/vad_multilingual_marblenet/670f425c7f186060b7a7268ba6dfacb2/vad_multilingual_marblenet.nemo
-  external_vad_manifest: null
-```
-
-### Oracle VAD 上限
-
-```bash
-python3 -u offline_diar_infer.py \
-  --config-name=diar_infer_aishell4_local \
-  diarizer.out_dir=/home/enovo/Speech_Major/results/nemo_cluster_one_oracle_vad \
-  diarizer.oracle_vad=True \
-  diarizer.vad.model_path=null \
-  diarizer.vad.external_vad_manifest=null
-```
-
-### 自行估计说话人数
-
-```bash
-python3 -u offline_diar_infer.py \
-  --config-name=diar_infer_aishell4_local \
-  diarizer.clustering.parameters.oracle_num_speakers=False \
-  diarizer.clustering.parameters.max_num_speakers=8 \
-  diarizer.out_dir=/home/enovo/Speech_Major/results/nemo_cluster_one_predict_spk
+.venv/bin/python scripts/merge_vad_vote.py \
+  --vad-dirs \
+    results/vad_3_ch0/vad_outputs \
+    results/vad_3_ch1/vad_outputs \
+    results/vad_3_ch2/vad_outputs \
+    results/vad_3_ch3/vad_outputs \
+    results/vad_3_ch4/vad_outputs \
+    results/vad_3_ch5/vad_outputs \
+    results/vad_3_ch6/vad_outputs \
+    results/vad_3_ch7/vad_outputs \
+  --audio-dir data/wavs_mono \
+  --output data/manifests/aishell4_external_vad_vote2_pad02_3.json \
+  --vote-threshold 2 \
+  --merge-gap 0.2 \
+  --min-duration 0.05 \
+  --pad-onset 0.2 \
+  --pad-offset 0.2
 ```

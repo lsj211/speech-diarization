@@ -37,7 +37,7 @@ models/*
 
 # Audio, annotations, archives, and large local artifacts
 *.wav
-*.flac
+*.flac 
 *.mp3
 *.m4a
 *.pcm
