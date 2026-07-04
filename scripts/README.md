@@ -208,6 +208,64 @@ python scripts/merge_vad_vote.py \
   --pad-offset 0.2
 ```
 
+## 7. 动态 top-k 通道融合
+
+第二步尝试基于 `.frame` VAD 置信度做动态通道选择：每个 10ms 帧读取 8 个通道分数，选择分数最高的 top-k 个通道求平均，再用阈值判定是否为 speech。该方法用于模拟“当前时间帧选择更可靠/更近的麦克风通道”。
+
+脚本：
+
+```text
+scripts/merge_vad_topk.py
+```
+
+当前 1 条样本测试结果：
+
+```text
+top_k=2, threshold=0.50, pad 0.2/0.2  DER 25.37% | FA 21.26 | MISS 351.22 | CONF 57.80
+top_k=2, threshold=0.35, pad 0.2/0.2  DER 18.52% | FA 34.25 | MISS 218.34 | CONF 61.54
+```
+
+阶段结论：`top-2` 平均分数过于保守，虽然 FA 较低，但 MISS 明显偏高，当前不如第 6 节的 `vote2 + pad 0.2/0.2`。后续如果继续优化 top-k，可以尝试 `top_k=1`、更低阈值，或改成 max/加权融合。
+
+生成 `top_k=2, threshold=0.35` 的 1 条样本 manifest：
+
+```bash
+cd /home/enovo/Speech_Major
+source .venv/bin/activate
+
+python scripts/merge_vad_topk.py \
+  --vad-dirs \
+    results/vad_ch0/vad_outputs \
+    results/vad_ch1/vad_outputs \
+    results/vad_ch2/vad_outputs \
+    results/vad_ch3/vad_outputs \
+    results/vad_ch4/vad_outputs \
+    results/vad_ch5/vad_outputs \
+    results/vad_ch6/vad_outputs \
+    results/vad_ch7/vad_outputs \
+  --audio-dir data/wavs_mono \
+  --output data/manifests/aishell4_external_vad_topk2_thr035_pad02_one.json \
+  --top-k 2 \
+  --score-threshold 0.35 \
+  --frame-shift 0.01 \
+  --merge-gap 0.2 \
+  --min-duration 0.05 \
+  --pad-onset 0.2 \
+  --pad-offset 0.2
+```
+
+运行 diarization：
+
+```bash
+cd /home/enovo/Speech_Major/baseline/NeMo/examples/speaker_tasks/diarization
+
+python clustering_diarizer/offline_diar_infer.py \
+  --config-name=diar_infer_aishell4_local \
+  diarizer.manifest_filepath=/home/enovo/Speech_Major/data/manifests/aishell4_test_manifest_one_mono_wsl.json \
+  diarizer.vad.external_vad_manifest=/home/enovo/Speech_Major/data/manifests/aishell4_external_vad_topk2_thr035_pad02_one.json \
+  diarizer.out_dir=/home/enovo/Speech_Major/results/nemo_cluster_one_external_vad_topk2_thr035_pad02
+```
+
 运行 diarization：
 
 ```bash
@@ -246,3 +304,99 @@ source .venv/bin/activate
   --pad-onset 0.2 \
   --pad-offset 0.2
 ```
+
+## 8. 通道质量加权融合
+
+第三步改成 Channel Reliability Aware VAD Fusion。核心思想不是简单认为每个通道同等可靠，而是先给每个通道估计一个可靠性权重，再做加权投票：
+
+```text
+quality_i =
+  margin_weight * VAD_confidence_margin_i
+  + speech_ratio_weight * speech_ratio_i
+  + stability_weight * VAD_stability_i
+  + energy_weight * RMS_energy_i
+  + snr_weight * SNR_i
+
+weight_i = quality_i / sum_j quality_j
+
+speech(t) = 1, if sum_i weight_i * active_i(t) >= threshold
+```
+
+其中：
+
+- `VAD_confidence_margin`：该通道 `.frame` 分数中高置信度均值和低置信度均值的差，近似表示语音/噪声可分性。
+- `speech_ratio`：该通道被 VAD 判为 speech 的比例，避免极端静默或过度激活通道。
+- `VAD_stability`：相邻帧分数变化越小，说明该通道 VAD 输出越稳定。
+- `RMS_energy`：从原始多通道音频 `data/wavs` 计算通道能量。
+- `SNR`：用该通道 VAD 段作为 speech 区间，非 speech 区间作为 noise 区间，计算语音/非语音能量比。
+
+脚本：
+
+```text
+scripts/merge_vad_weighted_vote.py
+```
+
+推荐先跑 1 条样本，参数沿用当前最佳的 `pad 0.2/0.2 + merge_gap 0.2`，额外打开多通道音频质量分。当前验证最优阈值为 `active_weight_threshold=0.23`：
+
+```bash
+cd /home/enovo/Speech_Major
+source .venv/bin/activate
+
+python scripts/merge_vad_weighted_vote.py \
+  --vad-dirs \
+    results/vad_ch0/vad_outputs \
+    results/vad_ch1/vad_outputs \
+    results/vad_ch2/vad_outputs \
+    results/vad_ch3/vad_outputs \
+    results/vad_ch4/vad_outputs \
+    results/vad_ch5/vad_outputs \
+    results/vad_ch6/vad_outputs \
+    results/vad_ch7/vad_outputs \
+  --frame-dirs \
+    results/vad_ch0/vad_outputs \
+    results/vad_ch1/vad_outputs \
+    results/vad_ch2/vad_outputs \
+    results/vad_ch3/vad_outputs \
+    results/vad_ch4/vad_outputs \
+    results/vad_ch5/vad_outputs \
+    results/vad_ch6/vad_outputs \
+    results/vad_ch7/vad_outputs \
+  --audio-dir data/wavs_mono \
+  --multichannel-audio-dir data/wavs \
+  --output data/manifests/aishell4_external_vad_weighted_vote_audio_thr023_pad02_one.json \
+  --weights-output results/weights_weighted_vote_audio_thr023_one.json \
+  --active-weight-threshold 0.23 \
+  --merge-gap 0.2 \
+  --min-duration 0.05 \
+  --pad-onset 0.2 \
+  --pad-offset 0.2 \
+  --margin-weight 1.0 \
+  --speech-ratio-weight 0.3 \
+  --stability-weight 0.3 \
+  --energy-weight 0.3 \
+  --snr-weight 0.5
+```
+
+评测命令：
+
+```bash
+cd /home/enovo/Speech_Major/baseline/NeMo/examples/speaker_tasks/diarization
+
+python clustering_diarizer/offline_diar_infer.py \
+  --config-name=diar_infer_aishell4_local \
+  diarizer.manifest_filepath=/home/enovo/Speech_Major/data/manifests/aishell4_test_manifest_one_mono_wsl.json \
+  diarizer.vad.external_vad_manifest=/home/enovo/Speech_Major/data/manifests/aishell4_external_vad_weighted_vote_audio_thr023_pad02_one.json \
+  diarizer.out_dir=/home/enovo/Speech_Major/results/nemo_cluster_one_external_vad_weighted_vote_audio_thr023_pad02
+```
+
+一条样本 `L_R003S01C02` 的权重和结果：
+
+```text
+weights: ch0=0.130, ch1=0.136, ch2=0.135, ch3=0.124, ch4=0.108, ch5=0.103, ch6=0.135, ch7=0.130
+
+weighted vote audio, thr=0.22  DER 11.08% | FA 56.85 | MISS 82.51  | CONF 48.59
+weighted vote audio, thr=0.23  DER 10.88% | FA 52.97 | MISS 84.42  | CONF 47.08
+weighted vote audio, thr=0.24  DER 11.75% | FA 46.71 | MISS 102.77 | CONF 49.80
+```
+
+阶段说明：这个方法是第 6 节 `vote2 + pad 0.2/0.2` 的自然升级版。目前在一条样本上从 `vote2 + pad 0.2/0.2` 的 DER 11.11% 进一步降到 10.88%，主要收益来自降低 false alarm 和 confusion；阈值继续升高会让 MISS 明显增加。后续扩展到 3 条或全测试集时，优先使用 `active_weight_threshold=0.23`。
