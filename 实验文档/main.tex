@@ -1,0 +1,423 @@
+% -*- coding: utf-8 -*-
+\documentclass[UTF8,a4paper,10pt]{ctexart}
+\usepackage[left=3.17cm, right=3.17cm, top=2.74cm, bottom=2.74cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx,subfig}
+\usepackage{float}
+\usepackage{cite}
+\usepackage{caption}
+\usepackage{enumerate}
+\usepackage{booktabs}
+\usepackage{multirow}
+\newcommand{\tabincell}[2]{\begin{tabular}{@{}#1@{}}#2\end{tabular}}
+
+\usepackage{ctex}
+\setCJKmainfont[ItalicFont=Noto Sans CJK SC Bold, BoldFont=Noto Serif CJK SC Black]{Noto Serif CJK SC}
+\newcommand{\yihao}{\fontsize{26pt}{36pt}\selectfont}
+\newcommand{\erhao}{\fontsize{22pt}{28pt}\selectfont}
+\newcommand{\xiaoer}{\fontsize{18pt}{18pt}\selectfont}
+\newcommand{\sanhao}{\fontsize{16pt}{24pt}\selectfont}
+\newcommand{\xiaosan}{\fontsize{15pt}{22pt}\selectfont}
+\newcommand{\sihao}{\fontsize{14pt}{21pt}\selectfont}
+\newcommand{\banxiaosi}{\fontsize{13pt}{19.5pt}\selectfont}
+\newcommand{\xiaosi}{\fontsize{12pt}{18pt}\selectfont}
+\newcommand{\dawuhao}{\fontsize{11pt}{11pt}\selectfont}
+\newcommand{\wuhao}{\fontsize{10.5pt}{15.75pt}\selectfont}
+
+\usepackage{ctexcap}
+\CTEXsetup[name={,、},number={ \chinese{section}}]{section}
+\CTEXsetup[name={（,）},number={\chinese{subsection}}]{subsection}
+\CTEXsetup[name={,.},number={\arabic{subsubsection}}]{subsubsection}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{\kaishu \leftmark}
+\rhead{\kaishu 语音信息处理大作业}
+\lfoot{}
+\cfoot{\thepage}
+\rfoot{}
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\newcommand{\HRulegrossa}{\rule{\linewidth}{1.2mm}}
+
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\floatname{algorithm}{Algorithm}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\usepackage{lipsum}
+\makeatletter
+\newenvironment{breakablealgorithm}
+  {\begin{center}
+     \refstepcounter{algorithm}
+     \hrule height.8pt depth0pt \kern2pt
+     \renewcommand{\caption}[2][\relax]{%
+      {\raggedright\textbf{\ALG@name~\thealgorithm} ##2\par}%
+      \ifx\relax##1\relax
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##2}%
+      \else
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##1}%
+      \fi
+      \kern2pt\hrule\kern2pt
+     }
+  }{\kern2pt\hrule\relax\end{center}}
+\makeatother
+
+\usepackage{xcolor}
+\usepackage{listings}
+\lstset{
+breaklines,
+basicstyle=\small,
+escapeinside=``,
+keywordstyle=\color{ blue!70} \bfseries,
+commentstyle=\color{red!50!green!50!blue!50},
+stringstyle=\ttfamily,
+extendedchars=false,
+linewidth=\textwidth,
+numbers=left,
+numberstyle=\tiny \color{blue!50},
+frame=trbl
+rulesepcolor= \color{ red!20!green!20!blue!20}
+}
+
+\usepackage[colorlinks,linkcolor=black,anchorcolor=blue]{hyperref}
+
+\usepackage{enumitem,amssymb}
+\newlist{todolist}{itemize}{2}
+\setlist[todolist]{label=$\square$}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}\hspace{-2.5pt}}
+\newcommand{\wontfix}{\rlap{$\square$}{\large\hspace{1pt}\xmark}}
+
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{eso-pic}
+\newcommand{\watermark}[3]{\AddToShipoutPictureBG{
+\parbox[b][\paperheight]{\paperwidth}{\vfill\centering%
+\tikz[remember picture, overlay]%
+  \node [rotate = #1, scale = #2] at (current page.center)%
+    {\textcolor{gray!80!cyan!30!magenta!30}{#3}};\vfill}}}
+
+%———————————————正文——————————————————————
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+    \includegraphics[width=0.8\textwidth]{NKU.png}\\[1cm]
+    \textsc{\Huge \kaishu{\textbf{南\ \ \ \ \ \ 开\ \ \ \ \ \ 大\ \ \ \ \ \ 学}} }\\[0.9cm]
+    \textsc{\huge \kaishu{\textbf{计\ \ 算\ \ 机\ \ 学\ \ 院}}}\\[0.5cm]
+    \textsc{\Large \textbf{语音信息处理大作业}}\\[0.8cm]
+    \HRule \\[0.9cm]
+    { \LARGE \bfseries 基于NeMo的多通道说话人日志\\ 及VAD融合优化}\\[0.4cm]
+    \HRule \\[2.0cm]
+    \centering
+    \textsc{\LARGE 罗仕杰\hspace{1em}张子恒\hspace{1em}王一冰}\\[0.5cm]
+    \textsc{\LARGE \kaishu{年级 : 2023级}}\\[0.5cm]
+    \textsc{\LARGE \kaishu{专业 : 计算机科学与技术}}\\[0.5cm]
+    \textsc{\LARGE \kaishu{指导教师 : 秦勇}}\\[0.5cm]
+    \vfill
+    {\Large \today}
+    \end{center}
+\end{titlepage}
+
+\newpage
+\thispagestyle{empty}
+\renewcommand{\abstractname}{\kaishu \sihao \textbf{摘要}}
+\begin{abstract}
+说话人日志（Speaker Diarization）是语种识别技术中的重要任务，旨在回答"谁在什么时候说话"这一核心问题。本报告基于NVIDIA NeMo框架，在AISHELL-4多通道会议语料库上实现了完整的说话人日志pipeline，包括语音活动检测（VAD）、说话人嵌入提取、聚类三个核心模块。针对多通道场景，我们系统性地探索了多种VAD融合策略：从基础的k-of-n投票融合，到动态top-k通道选择，再到基于通道可靠性加权的融合方法（Channel Reliability Aware Weighted VAD Fusion）。在一条长度为1695.88秒的样本上，最优配置（加权投票+自适应阈值0.23）取得了10.88\%的DER（Diarization Error Rate）。在此基础上，我们进一步探索了基于多通道帧级分数的重叠说话区域检测与VAD松弛优化，DER降至10.85\%。本报告详细记录了实验设计、实现过程、结果分析及优化方向。
+
+\noindent \textbf{关键词：}说话人日志，多通道VAD融合，说话人日志，NeMo，AISHELL-4
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+\watermark{60}{10}{NKU}
+\setcounter{page}{1}
+
+\section{引言}
+
+说话人日志（Speaker Diarization）旨在回答多人录音中“谁在何时说话”，
+是会议转写、访谈检索和客服分析的基础模块。聚类式系统通常依次执行语音活动检测
+（Voice Activity Detection, VAD）、说话人切分与嵌入提取、相似度聚类。
+前级漏检会使后端完全失去相应语音，误检则会向嵌入和聚类引入噪声，因此远场会议中的
+VAD 质量会直接限制最终日志性能。
+
+AISHELL-4 是真实中文会议语料，每场会议由8通道环形麦克风阵列采集，包含混响、
+噪声、快速说话人轮换和重叠语音\cite{aishell2021}。不同麦克风到声源的距离和信噪比
+不同，直接平均可能稀释仅在部分通道清晰的语音；但任一通道激活即判为语音又容易把
+局部噪声带入系统。基于这一矛盾，本文以最基本的 NVIDIA NeMo 单通道流程为基线，
+再把多通道信息集中用于 VAD 前端。主要工作如下：
+
+\begin{enumerate}
+  \item 复现由 MarbleNet VAD、TitaNet 多尺度嵌入和谱聚类构成的 NeMo 基础系统，
+  并统一分解误报（FA）、漏检（MISS）和说话人混淆（CONF）。
+  \item 将原始8通道分别拆为单通道并独立运行 VAD，先用 Union 建立最基础的
+  决策级融合，再逐步引入 Vote2 和动态 Top-$k$，验证通道一致性与边界扩展的作用。
+  \item 实现基于置信度、稳定性、能量和信噪比的通道可靠性加权，并探索利用多通道
+  帧分数进行重叠候选松弛。
+  \item 对未超过简单投票的创新实验进行负结果分析，明确当前结论的适用边界。
+\end{enumerate}
+
+\section{相关工作}
+
+\subsection{聚类式说话人日志}
+
+NeMo 提供模块化的语音处理工具链\cite{nemo2023}。本文使用的 MarbleNet 是轻量级
+一维时间--通道可分离卷积 VAD\cite{marblenet2021}；TitaNet 通过深度可分离卷积和
+统计池化将变长语音映射为定长说话人表示\cite{titanet2022}。聚类式日志的优点是
+VAD、嵌入和聚类可以独立替换和分析。NeMo 的多尺度策略同时使用长窗口的稳定表征和
+短窗口的时间分辨率，适合包含快速说话人轮换的会议语音\cite{park2022}.
+
+\subsection{多通道前端}
+
+多通道会议处理常通过波束形成、通道选择或决策级融合利用空间冗余。本文不训练新的
+多通道网络，而是在每个通道独立运行同一 VAD 后融合区间。Union 融合召回高但易误报，
+intersection 融合精度高但易漏检；$k$-of-$n$ 投票位于两者之间。可靠性加权进一步
+允许高质量通道贡献更大的投票权，但其效果取决于质量指标能否真正预测该通道的 VAD
+正确性。为避免直接把复杂方法与单通道基线比较，本文按
+“8通道平均的基础 VAD $\rightarrow$ 8通道独立 VAD + Union
+$\rightarrow$ Vote2 $\rightarrow$ Top-$k$/可靠性加权”的顺序逐级实验。
+
+\section{问题定义与评价指标}
+
+给定8通道会议信号 $X=\{x_i\}_{i=1}^{8}$，系统输出带说话人标签的时间段集合
+$\mathcal{Y}=\{(b_j,e_j,s_j)\}$。本文采用说话人日志错误率
+\begin{equation}
+\mathrm{DER} =
+\frac{T_{\mathrm{FA}}+T_{\mathrm{MISS}}+T_{\mathrm{CONF}}}
+{T_{\mathrm{REF}}}\times 100\% ,
+\label{eq:der}
+\end{equation}
+其中 $T_{\mathrm{REF}}$ 为计分参考语音总时长。所有结果均采用
+0.25\,s collar、忽略重叠语音（\texttt{ignore\_overlap=True}），并使用标注说话人数。
+这样可隔离 VAD 与分段质量的影响，但比未知说话人数、计入重叠的实际场景更容易。
+
+\section{方法}
+
+\subsection{NeMo 基础 VAD}
+
+最基本的基线把8通道波形逐采样点等权平均为单通道，使用 NeMo 内部
+\texttt{vad\_multilingual\_marblenet} 检测语音；随后用
+\texttt{titanet\_large} 在 $[3.0,2.5,2.0,1.5,1.0,0.5]$\,s 六种窗口上
+提取嵌入，窗口移位均为窗口长度的一半，最后执行多尺度谱聚类。该流程不使用自定义
+多通道判决，对应结果目录 \texttt{results/nemo\_cluster\_basic\_test\_vad}，
+作为后续多通道方法的统一基准。
+
+\subsection{八通道拆分与基础 Union 融合}
+
+在基础系统之后，将原始阵列录音拆成 ch0--ch7 八路单通道音频，每一路使用完全相同的
+MarbleNet 参数独立生成帧分数和语音区间。最直接的融合是 Union：
+\begin{equation}
+A_{\mathrm{union}}(t)=\mathbb{I}\left[\sum_{i=1}^{8}a_i(t)\ge 1\right],
+\label{eq:union}
+\end{equation}
+即任一通道检测到语音就保留该时刻。Union 最大程度利用了不同麦克风对不同位置说话人的
+互补性，是“八通道分离后融合”的基础版本；但某个通道的局部噪声同样会被无条件保留。
+因此下一步才把式\eqref{eq:union}中的阈值从1提高到2，形成 Vote2。
+
+\subsection{$k$-of-$n$ 等权投票}
+
+8个通道分别运行 MarbleNet。记通道 $i$ 的后处理语音区间指示为
+$a_i(t)\in\{0,1\}$，Vote-$k$ 判决为
+\begin{equation}
+A_k(t)=\mathbb{I}\left[\sum_{i=1}^{8}a_i(t)\ge k\right].
+\label{eq:vote}
+\end{equation}
+主实验取 $k=2$。为补偿 VAD 在词首词尾和短停顿处的截断，将投票所得每段向前、向后
+各扩展0.2\,s，合并间隔不超过0.2\,s 的片段，并删除短于0.05\,s 的片段。
+动态 Top-$k$ 方法则逐帧只保留置信度最高的两个通道；它更保守，可能降低误报，
+也可能忽略分散在其他通道上的有效语音。
+
+\subsection{通道可靠性感知加权}
+
+本文对每条录音独立估计通道质量。通道 $i$ 的质量分数为
+\begin{equation}
+q_i=m_i+0.3r_i+0.3s_i+0.3e_i+0.5n_i ,
+\end{equation}
+其中 $m_i$ 是最高20\%与最低50\%帧分数均值之差，$r_i$ 是 VAD 分数不小于
+0.5 的帧比例，$s_i=1-\operatorname{mean}|p_i(t)-p_i(t-1)|$；
+$e_i$ 和 $n_i$ 分别为跨通道 min--max 归一化的 RMS 能量与估计 SNR。
+为避免某一通道权重完全消失，代码加入 $\lambda=0.02$ 的下限：
+\begin{equation}
+w_i=\frac{\max(0,q_i)+\lambda}
+{\sum_j[\max(0,q_j)+\lambda]},\quad
+A_w(t)=\mathbb{I}\left[\sum_i w_i a_i(t)\ge\tau\right].
+\label{eq:weighted}
+\end{equation}
+式\eqref{eq:weighted}对 NeMo 已输出的语音区间进行加权，而不是直接对原始帧分数
+二次阈值化；随后使用与 Vote2 相同的边界后处理。实验扫描
+$\tau\in\{0.22,0.23,0.24\}$。
+
+\subsection{重叠候选松弛}
+
+对每个10\,ms帧统计 VAD 分数不小于0.5的通道数及8通道平均分；当至少7个通道激活
+且均值不小于0.65时，标为重叠候选。候选经双侧0.1\,s扩展、0.3\,s间隔合并和
+0.2\,s最短时长过滤后，再以0.15\,s余量并入加权 VAD。该方法只是利用
+“多通道同时高置信”召回疑似重叠区域，并不直接输出第二说话人标签。
+
+\section{实验}
+
+\subsection{数据与设置}
+
+当前完整消融覆盖 AISHELL-4 测试录音
+\texttt{L\_R003S01C02}：16\,kHz、8通道，参考 RTTM 含512个说话片段和6名说话人，
+计分参考语音时长为1695.8718\,s。另两条录音已完成逐通道 VAD 和多通道 union
+推理，但尚无与本文所有消融配置一致的 DER，故不混入主表。运行环境为 WSL2、
+PyTorch/NeMo 和 CUDA；除 VAD 输入与融合策略外，嵌入及聚类配置保持一致。
+表中数值均由各结果目录的预测 RTTM 重新计分，采用同一最优说话人映射、
+0.25\,s collar 和忽略重叠设置。
+
+\subsection{总体结果}
+
+\begin{table}[H]
+\centering
+\caption{主要实验结果（FA、MISS、CONF 的单位为秒）}
+\label{tab:main}
+\begin{tabular}{lrrrr}
+\toprule
+方法 & DER(\%) & FA & MISS & CONF\\
+\midrule
+NeMo 基础 VAD（8ch平均） & 36.785 & 15.93 & 477.79 & 130.11\\
+8ch独立 VAD + Union & 17.922 & 57.66 & 177.00 & 69.28\\
+8ch Vote2，无边界扩展 & 21.836 & 36.03 & 260.88 & 73.40\\
+8ch Vote2，双侧0.2\,s & 11.108 & 61.79 & \textbf{78.43} & 48.16\\
+Top-2，阈值0.35 & 18.523 & 34.25 & 218.34 & 61.54\\
+Top-2，阈值0.50 & 25.372 & 21.26 & 351.22 & 57.80\\
+可靠性加权，$\tau=0.23$ & 10.878 & 52.98 & 84.41 & 47.08\\
+\textbf{加权 + 重叠候选松弛} & \textbf{10.846} & 52.98 & 84.39 & \textbf{46.57}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+基础 VAD 的 MISS 为477.79\,s。将8通道拆开独立检测并做 Union 后，MISS 降至
+177.00\,s，尽管 FA 从15.93\,s增加到57.66\,s，DER 仍由36.79\%降至17.92\%。
+这一步证明多通道互补信息本身有效。直接改为 Vote2 会滤除单通道噪声，但无边界扩展时
+两个通道的 VAD 起止偏差造成 MISS 反升至260.88\,s；加入双侧0.2\,s扩展后，
+MISS 降至78.43\,s，DER 进一步降到11.11\%。因此逐级改进的核心不是简单提高投票
+门槛，而是“通道一致性抑噪”和“边界补偿保召回”必须配套使用。
+
+\subsection{边界与 Top-$k$ 消融}
+
+不加 padding 时，Vote2 会同时要求两个通道的 VAD 区间在边界上重合，轻微的通道间
+起止偏差就会被裁掉；双侧扩展直接补偿了这种误差。Top-2 则表现出过度保守：
+阈值从0.35提高到0.50时，FA 减少5.41\,s，但 MISS 增加132.87\,s，DER 反而
+上升7.30个百分点。这说明当前样本的主要矛盾是语音召回而不是误报，仅保留最高置信
+通道会错过远离声源、但在其他通道仍可检测的语音。
+
+\subsection{可靠性加权消融}
+
+\begin{table}[H]
+\centering
+\caption{可靠性加权的阈值消融}
+\label{tab:weighted}
+\begin{tabular}{crrrr}
+\toprule
+$\tau$ & DER(\%) & FA & MISS & CONF\\
+\midrule
+0.22 & 11.083 & 56.86 & 82.50 & 48.59\\
+0.23 & \textbf{10.878} & 52.98 & \textbf{84.41} & \textbf{47.08}\\
+0.24 & 11.751 & \textbf{46.71} & 102.77 & 49.80\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+最优加权结果为10.88\%，比 Vote2 的11.11\%降低0.23个百分点。8通道最终权重依次为
+0.1302、0.1356、0.1352、0.1237、0.1083、0.1028、0.1346和0.1297，
+范围仅0.1028--0.1356，说明各通道在当前质量指标下相近，归一化后近似等权。
+提高 $\tau$ 虽能降低 FA，却会迅速增加 MISS；$\tau=0.24$ 的 MISS 比0.23
+多18.35\,s。复杂权重没有提供足够额外信息，且单条样本调参容易过拟合。
+
+\subsection{重叠候选实验}
+
+阈值“至少7通道激活、平均分不小于0.65”产生717段、总计742.63\,s候选；
+相对参考重叠区域的时长 Precision、Recall、F1 分别为0.108、0.425和0.172。
+低精度表明“多通道同时高 VAD 分数”更接近全局语音证据，并非充分的重叠证据。
+将候选并入加权 VAD 后，DER 从10.878\%微降至10.846\%，收益主要来自 CONF
+减少0.52\,s。由于评测设置忽略重叠语音，不能据此宣称系统已经解决重叠说话人归属。
+
+\subsection{局限性与复现难点}
+
+复现中的主要难点包括：（1）NeMo 内部 VAD 与外部 VAD manifest 的字段及区间格式
+不同，需要保证录音标识、路径和时长严格对应；（2）8个通道的帧序列长度和边界存在
+细微差异，融合前必须统一10\,ms时间轴；（3）DER 对 collar、是否忽略重叠、是否使用
+标注说话人数十分敏感，所有对比必须保持口径一致。
+
+当前结论来自一条完整消融录音，且参数选择与报告评测使用同一条样本，存在过拟合风险；
+使用标注说话人数和忽略重叠也降低了任务难度。因此本文只能支持：在当前样本和统一后端下，
+八通道拆分融合显著优于平均波形的基础 VAD，且可靠性加权在该样本略优于 Vote2；
+尚不能证明这一优势能推广到 AISHELL-4 完整测试集。
+
+\section{总结与展望}
+
+本文完成了从 NeMo 基础 VAD 到多通道创新方法的逐级实验：8通道平均的基础系统为
+36.79\% DER；拆分8通道、分别运行 VAD 后做 Union 降至17.92\%；Vote2 配合双侧
+0.2\,s扩展降至11.11\%；可靠性加权和重叠松弛进一步达到10.88\%和10.85\%。
+结果说明多通道互补、通道一致性和边界补偿依次解决了基础系统的主要漏检问题，同时也
+暴露出当前重叠代理精度较低、完整测试集验证不足等限制。
+
+后续将：（1）固定开发集阈值，在其余会议和完整测试集一次性评测并报告均值与方差；
+（2）使用独立噪声估计、混响指标或可学习门控增强通道质量差异；
+（3）引入真正的重叠检测器和多标签解码，同时报告计入重叠的 DER；
+（4）去除标注说话人数，评估部署条件下的计数与聚类鲁棒性。
+
+\begin{thebibliography}{99}
+\bibitem{nemo2023}
+O. Kuchaiev, J. Li, H. Nguyen, et al.
+NeMo: a toolkit for building AI applications using Neural Modules.
+\textit{arXiv:1909.09577}, 2019.
+
+\bibitem{marblenet2021}
+F. Jia, S. Majumdar, and B. Ginsburg.
+MarbleNet: deep 1D time-channel separable convolutional neural network for
+voice activity detection. \textit{ICASSP}, 2021.
+
+\bibitem{titanet2022}
+N. R. Koluguri, T. Park, and B. Ginsburg.
+TitaNet: neural model for speaker representation with 1D depth-wise separable
+convolutions and global context. \textit{Interspeech}, 2022.
+
+\bibitem{park2022}
+T. J. Park, N. R. Koluguri, J. Balam, and B. Ginsburg.
+Multi-scale speaker diarization with dynamic scale weighting.
+\textit{Interspeech}, 2022.
+
+\bibitem{aishell2021}
+Y. Fu, L. Cheng, S. Lv, et al.
+AISHELL-4: an open source dataset for speech enhancement, separation,
+recognition and speaker diarization in conference scenario.
+\textit{Interspeech}, 4406--4410, 2021.
+\end{thebibliography}
+
+\newpage
+\appendix
+\section{附录：复现索引}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+功能 & 文件或目录\\
+\midrule
+数据准备 & \texttt{scripts/prepare\_aishell4\_manifest.py}\\
+单通道转换 & \texttt{scripts/convert\_to\_mono.py}\\
+基础 Union & \texttt{scripts/merge\_vad\_union.py}\\
+Vote2 / Top-$k$ & \texttt{scripts/merge\_vad\_vote.py} / \texttt{merge\_vad\_topk.py}\\
+可靠性融合 & \texttt{scripts/merge\_vad\_weighted\_vote.py}\\
+重叠候选 & \texttt{scripts/detect\_overlap\_regions.py}\\
+预测结果 & \texttt{results/nemo\_cluster\_*/pred\_rttms/}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+代码仓库为
+\url{https://github.com/lsj211/speech-diarization}。课程要求提交公开 Gitee
+仓库且提交记录不少于10次，最终提交前需同步仓库并在邮件正文填写 Gitee 与
+Bilibili 链接。所有表格均由 WSL 结果目录中的预测 RTTM 按统一口径重新计分，
+可由式\eqref{eq:der}逐行复算。
+
+\end{document}
