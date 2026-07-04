@@ -400,3 +400,130 @@ weighted vote audio, thr=0.24  DER 11.75% | FA 46.71 | MISS 102.77 | CONF 49.80
 ```
 
 阶段说明：这个方法是第 6 节 `vote2 + pad 0.2/0.2` 的自然升级版。目前在一条样本上从 `vote2 + pad 0.2/0.2` 的 DER 11.11% 进一步降到 10.88%，主要收益来自降低 false alarm 和 confusion；阈值继续升高会让 MISS 明显增加。后续扩展到 3 条或全测试集时，优先使用 `active_weight_threshold=0.23`。
+
+## 9. 重叠区域检测与 VAD 松弛优化
+
+第九步在加权投票 VAD 基础上，利用多通道 VAD 帧级分数检测可能的重叠说话区域，将这些区域额外松弛（relax）到 VAD 中，使说话人嵌入提取能覆盖重叠段，从而改善重叠区的说话人区分度。
+
+### 9.1 核心思路
+
+检测重叠候选的核心指标：
+
+- **min-active-channels**：当前帧有多少个通道同时活跃（帧分数 ≥ score-threshold），通道数越多越可能是重叠。
+- **min-mean-score**：当前帧所有通道的平均帧分数，分数越高 VAD 越确定有语音。
+- **boundary-count / speaker-switch-count**：候选区域附近的 VAD 边界数量和预测说话人切换数量，作为辅助过滤。
+
+检测出的重叠候选区域被 padding 后合并到原 VAD manifest 中（通过 `--base-vad-manifest` + `--relaxed-vad-output`），生成松弛后的 VAD manifest。
+
+### 9.2 运行重叠检测
+
+当前以第 8 节最佳加权投票 VAD（`thr0.23`）为基底，测试了多种参数组合：
+
+```bash
+cd /home/enovo/Speech_Major
+source .venv/bin/activate
+
+# 参数组合 1: min_active_channels=7, min_mean_score=0.65 (thr7_mean065)
+python scripts/detect_overlap_regions.py \
+  --vad-dirs \
+    results/vad_ch0/vad_outputs \
+    results/vad_ch1/vad_outputs \
+    results/vad_ch2/vad_outputs \
+    results/vad_ch3/vad_outputs \
+    results/vad_ch4/vad_outputs \
+    results/vad_ch5/vad_outputs \
+    results/vad_ch6/vad_outputs \
+    results/vad_ch7/vad_outputs \
+  --frame-dirs \
+    results/vad_ch0/vad_outputs \
+    results/vad_ch1/vad_outputs \
+    results/vad_ch2/vad_outputs \
+    results/vad_ch3/vad_outputs \
+    results/vad_ch4/vad_outputs \
+    results/vad_ch5/vad_outputs \
+    results/vad_ch6/vad_outputs \
+    results/vad_ch7/vad_outputs \
+  --output results/overlap_candidates_thr7_mean065_one.jsonl \
+  --summary-output results/overlap_summary_thr7_mean065_one.json \
+  --overlap-rttm-output-dir results/overlap_rttm_thr7_mean065_one \
+  --base-vad-manifest data/manifests/aishell4_external_vad_weighted_vote_audio_thr023_pad02_one.json \
+  --relaxed-vad-output data/manifests/aishell4_external_vad_weighted_vote_audio_thr023_pad02_overlap_relaxed_thr7_mean065_one.json \
+  --score-threshold 0.5 \
+  --min-active-channels 7 \
+  --min-mean-score 0.65 \
+  --pad-onset 0.1 \
+  --pad-offset 0.1 \
+  --merge-gap 0.3 \
+  --min-duration 0.2 \
+  --frame-shift 0.01
+```
+
+其他参数组合只需替换 `--min-active-channels`、`--min-mean-score` 及对应的输出路径。
+
+### 9.3 多种参数对比
+
+在 `L_R003S01C02` 一条样本上的重叠候选检测结果：
+
+```text
+参数组合                         候选人段数  候选总时长     Precision  Recall    F1
+-----------------------------------------------------------------------------------
+thr6_mean055                         792       917.03s      0.107     0.521    0.177
+  (min_active_channels=6, min_mean_score=0.55)
+thr7_mean065                         717       742.63s      0.108     0.425    0.172
+  (min_active_channels=7, min_mean_score=0.65)
+thr6_mean055 + sw1                   106       174.16s      0.267     0.247    0.257
+  (+ min_speaker_switch_count=1)
+thr7_mean065 + sw1                    98       137.86s      0.278     0.203    0.235
+  (+ min_speaker_switch_count=1)
+thr7_mean065 + b12                   334       467.07s      0.083     0.207    0.119
+  (+ min_boundary_count=12)
+```
+
+分析：
+
+- **`thr6_mean055`** 召回最高（52.1%），但候选区域很大（917s），precision 最低。
+- **`thr7_mean065`** 在候选数（717段/742.63s）和召回（42.5%）之间做了折中。
+- 加入 `sw1`（附近至少 1 个说话人切换）后候选数量大幅下降到 100 左右，precision 提升到 0.26-0.28，但 recall 掉到 20-25%。
+- `b12`（附近至少 12 个 VAD 边界）表现最差，可能因为 VAD 边界过于密集，过滤过于严苛。
+- **F1 最高的是 `thr6_mean055 + sw1`（0.257）**，但候选段较少。
+
+### 9.4 松弛 VAD 后的 Diarization 评测
+
+以 `thr7_mean065` 松弛后的 VAD 运行 diarization：
+
+```bash
+cd /home/enovo/Speech_Major/baseline/NeMo/examples/speaker_tasks/diarization
+
+python clustering_diarizer/offline_diar_infer.py \
+  --config-name=diar_infer_aishell4_local \
+  diarizer.manifest_filepath=/home/enovo/Speech_Major/data/manifests/aishell4_test_manifest_one_mono_wsl.json \
+  diarizer.vad.external_vad_manifest=/home/enovo/Speech_Major/data/manifests/aishell4_external_vad_weighted_vote_audio_thr023_pad02_overlap_relaxed_thr7_mean065_one.json \
+  diarizer.out_dir=/home/enovo/Speech_Major/results/nemo_cluster_one_overlap_relaxed_thr7_mean065
+```
+
+**结果（`collar=0.25, ignore_overlap=True`）：**
+
+```text
+file                                          total  confusion  false alarm     missed      DER
+----------------------------------------------------------------------------------------------
+L_R003S01C02                                1695.88      46.57        52.97      84.40   10.85%
+----------------------------------------------------------------------------------------------
+TOTAL                                       1695.88      46.57        52.97      84.40   10.85%
+
+FA: 0.0312 | MISS: 0.0498 | CER: 0.0275 | DER: 0.1085 | Spk. Count Acc. 1.0000
+```
+
+与第 8 节加权投票 VAD（`thr0.23`）对比：
+
+```text
+条件                                  DER      FA(秒)    MISS(秒)   CONF(秒)
+--------------------------------------------------------------------------
+加权投票 VAD thr=0.23 (baseline)     10.88%    52.97      84.42     47.08
++ overlap relaxation thr7_mean065    10.85%    52.97      84.40     46.57
+```
+
+阶段说明：在 `ignore_overlap=True` 条件下，重叠松弛带来的改善很微小（DER 从 10.88% → 10.85%），仅 confusion 略有下降（47.08 → 46.57），说明松弛 VAD 对重叠区说话人嵌入提取的帮助在当前配置下较为有限。主要原因可能是松弛添加的 VAD 段被聚类到已有说话人中，未产生新的区分度。后续可以考虑：
+
+1. 用 recall 更高的 `thr6_mean055` 松弛（更大覆盖但 precision 更低）看效果。
+2. 将重叠候选区域单独提取说话人嵌入并做独立聚类，之后再与基线结果融合。
+3. 避免在重叠区使用 clustering 硬分配，改用 soft 分配或多标签策略。
