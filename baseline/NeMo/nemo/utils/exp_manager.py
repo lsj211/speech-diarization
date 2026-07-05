@@ -33,7 +33,13 @@ from hydra.utils import get_original_cwd
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks.timer import Interval, Timer
-from lightning.pytorch.loggers import MLFlowLogger, NeptuneLogger, TensorBoardLogger, WandbLogger
+# from lightning.pytorch.loggers import MLFlowLogger, NeptuneLogger, TensorBoardLogger, WandbLogger
+from lightning.pytorch.loggers import MLFlowLogger, TensorBoardLogger, WandbLogger
+try:
+    from lightning.pytorch.loggers import NeptuneLogger
+except ImportError:
+    NeptuneLogger = None
+
 from lightning.pytorch.loops import _TrainingEpochLoop
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
@@ -1276,20 +1282,38 @@ def configure_loggers(
         logger_list.append(clearml_logger)
         logging.info("ClearMLLogger has been set up")
 
-    if create_neptune_logger:
-        if neptune_kwargs is None:
-            neptune_kwargs = {}
-        if "name" not in neptune_kwargs and "project" not in neptune_kwargs:
-            raise ValueError("name and project are required for neptune_logger")
-        if "api_key" not in neptune_kwargs and not os.getenv("NEPTUNE_API_TOKEN", None):
-            raise ValueError(
-                "either api_key should be set in neptune_kwargs or NEPTUNE_API_TOKEN should "
-                "be set in environment variable for neptune_logger"
-            )
-        neptune_logger = NeptuneLogger(**neptune_kwargs)
+    # if create_neptune_logger:
+    #     if neptune_kwargs is None:
+    #         neptune_kwargs = {}
+    #     if "name" not in neptune_kwargs and "project" not in neptune_kwargs:
+    #         raise ValueError("name and project are required for neptune_logger")
+    #     if "api_key" not in neptune_kwargs and not os.getenv("NEPTUNE_API_TOKEN", None):
+    #         raise ValueError(
+    #             "either api_key should be set in neptune_kwargs or NEPTUNE_API_TOKEN should "
+    #             "be set in environment variable for neptune_logger"
+    #         )
+    #     neptune_logger = NeptuneLogger(**neptune_kwargs)
 
-        logger_list.append(neptune_logger)
-        logging.info("NeptuneLogger has been set up")
+    #     logger_list.append(neptune_logger)
+    #     logging.info("NeptuneLogger has been set up")
+
+    if create_neptune_logger:
+        if NeptuneLogger is None:
+            logging.warning("NeptuneLogger is not available in this version of lightning. Skipping.")
+        else:
+            if neptune_kwargs is None:
+                neptune_kwargs = {}
+            if "name" not in neptune_kwargs and "project" not in neptune_kwargs:
+                raise ValueError("name and project are required for neptune_logger")
+            if "api_key" not in neptune_kwargs and not os.getenv("NEPTUNE_API_TOKEN", None):
+                raise ValueError(
+                    "either api_key should be set in neptune_kwargs or NEPTUNE_API_TOKEN should "
+                    "be set in environment variable for neptune_logger"
+                )
+            neptune_logger = NeptuneLogger(**neptune_kwargs)
+
+            logger_list.append(neptune_logger)
+            logging.info("NeptuneLogger has been set up")
 
     trainer._logger_connector.configure_logger(logger_list)
 
