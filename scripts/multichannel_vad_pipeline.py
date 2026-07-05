@@ -137,19 +137,19 @@ def run_vad_for_channel(
 # ---------------------------------------------------------------------------
 
 
-def read_vad_txt(path: Path) -> list[tuple[float, float]]:
+def read_vad_jsonl(path: Path) -> list[tuple[float, float]]:
     intervals = []
     with open(path, encoding="utf-8") as f:
         for line in f:
-            parts = line.strip().split()
-            if len(parts) < 2:
+            line = line.strip()
+            if not line:
                 continue
-            start = float(parts[0])
-            dur = float(parts[1])
+            entry = json.loads(line)
+            start = entry.get("offset", 0)
+            dur = entry.get("duration", 0)
             if dur > 0:
                 intervals.append((start, start + dur))
     return intervals
-
 
 def merge_intervals(
     intervals: list[tuple[float, float]],
@@ -184,8 +184,8 @@ def merge_vad_outputs(
 ) -> None:
     all_intervals = []
     for vad_dir in vad_out_dirs:
-        for txt_file in sorted(vad_dir.glob("*.txt")):
-            all_intervals.extend(read_vad_txt(txt_file))
+        for txt_file in sorted(vad_dir.glob("**/vad_out.json")):
+            all_intervals.extend(read_vad_jsonl(txt_file))
 
     print(f"Total raw VAD intervals across {len(vad_out_dirs)} channels: {len(all_intervals)}")
     merged = merge_intervals(all_intervals, merge_gap, min_duration)
