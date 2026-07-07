@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from eval_sortformer_8spk import (
@@ -70,6 +71,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bypass-postprocessing", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--postprocessing-yaml", type=Path, default=None)
     parser.add_argument("--verbose-report", action="store_true", help="Print NeMo's per-chunk DER table.")
+    parser.add_argument(
+        "--speaker-count-report-limit",
+        type=int,
+        default=40,
+        help="Maximum number of chunk-level speaker-count rows to print. Use 0 to disable chunk rows.",
+    )
     return parser.parse_args()
 
 
@@ -173,10 +180,78 @@ def build_single_session_chunk_manifest(args: argparse.Namespace) -> Path:
     return generated_manifest
 
 
+def session_id_from_chunk_id(uniq_id: str) -> str:
+    return re.sub(r"_chunk\d{4}.*$", "", uniq_id)
+
+
+def speaker_count_rows(all_reference: list, all_hypothesis: list, unique_speakers) -> list[dict]:
+    rows = []
+    hyp_by_id = {str(uniq_id): labels for uniq_id, labels in all_hypothesis}
+    for uniq_id, ref_labels in all_reference:
+        uniq_id = str(uniq_id)
+        hyp_labels = hyp_by_id.get(uniq_id, [])
+        ref_speakers = sorted(str(speaker) for speaker in unique_speakers(ref_labels))
+        hyp_speakers = sorted(str(speaker) for speaker in unique_speakers(hyp_labels))
+        rows.append(
+            {
+                "uniq_id": uniq_id,
+                "session_id": session_id_from_chunk_id(uniq_id),
+                "ref_speakers": ref_speakers,
+                "hyp_speakers": hyp_speakers,
+            }
+        )
+    return rows
+
+
+def print_speaker_count_diagnostics(
+    all_reference: list,
+    all_hypothesis: list,
+    unique_speakers,
+    report_limit: int,
+) -> None:
+    rows = speaker_count_rows(all_reference, all_hypothesis, unique_speakers)
+    if not rows:
+        print("Speaker count diagnostics: no reference/hypothesis rows")
+        return
+
+    matched = sum(len(row["ref_speakers"]) == len(row["hyp_speakers"]) for row in rows)
+    print(
+        "Speaker count diagnostics: "
+        f"chunk_exact_match={matched}/{len(rows)} acc={matched / len(rows):.4f}"
+    )
+
+    session_speakers: dict[str, dict[str, set[str]]] = {}
+    for row in rows:
+        session = session_speakers.setdefault(row["session_id"], {"ref": set(), "hyp": set()})
+        session["ref"].update(row["ref_speakers"])
+        session["hyp"].update(row["hyp_speakers"])
+
+    for session_id, speakers in sorted(session_speakers.items()):
+        ref_speakers = sorted(speakers["ref"])
+        hyp_speakers = sorted(speakers["hyp"])
+        print(
+            f"Session speaker count: {session_id} ref={len(ref_speakers)} hyp={len(hyp_speakers)} "
+            f"ref_spks={','.join(ref_speakers) or '-'} hyp_spks={','.join(hyp_speakers) or '-'}"
+        )
+
+    if report_limit <= 0:
+        return
+
+    print(f"Chunk speaker counts (first {min(report_limit, len(rows))}/{len(rows)}):")
+    for row in rows[:report_limit]:
+        ref_speakers = row["ref_speakers"]
+        hyp_speakers = row["hyp_speakers"]
+        print(
+            f"  {row['uniq_id']}: ref={len(ref_speakers)} hyp={len(hyp_speakers)} "
+            f"ref_spks={','.join(ref_speakers) or '-'} hyp_spks={','.join(hyp_speakers) or '-'}"
+        )
+
+
 def main() -> None:
     args = parse_args()
     deps = import_nemo_deps()
     torch = deps["torch"]
+    from nemo.collections.asr.metrics.der import unique_speakers
 
     model_path = resolve_project_path(args.model_path)
     manifest = resolve_project_path(args.manifest) if args.manifest is not None else build_single_session_chunk_manifest(args)
@@ -206,6 +281,12 @@ def main() -> None:
         out_rttm_dir=str(out_rttm_dir),
     )
     print(f"Scoring items: hypothesis={len(all_hypothesis)} reference={len(all_reference)} uem={len(all_uem)}")
+    print_speaker_count_diagnostics(
+        all_reference=all_reference,
+        all_hypothesis=all_hypothesis,
+        unique_speakers=unique_speakers,
+        report_limit=args.speaker_count_report_limit,
+    )
     score_result = deps["score_labels"](
         AUDIO_RTTM_MAP=audio_map,
         all_reference=all_reference,
