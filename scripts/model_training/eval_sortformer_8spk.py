@@ -28,7 +28,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--manifest",
         type=Path,
-        default=Path("data/manifests/model_training/aishell4_test_sortformer_chunks_train.json"),
+        default=None,
+        help="Optional prebuilt chunked manifest. If omitted, build one from --source-manifest.",
+    )
+    parser.add_argument(
+        "--source-manifest",
+        type=Path,
+        default=Path("data/manifests/aishell4_test_manifest_mono.json"),
+        help="Full-session AISHELL-4 manifest used to locate --session-id.",
+    )
+    parser.add_argument("--session-id", default="L_R003S01C02")
+    parser.add_argument("--chunk-sec", type=float, default=45.0)
+    parser.add_argument("--chunk-hop-sec", type=float, default=45.0)
+    parser.add_argument(
+        "--generated-manifest",
+        type=Path,
+        default=Path("data/manifests/model_training/aishell4_test_L_R003S01C02_8spk_c45_chunks.json"),
     )
     parser.add_argument(
         "--out-rttm-dir",
@@ -80,6 +95,91 @@ def resolve_project_path(path: Path) -> Path:
     if path.is_absolute():
         return path
     return PROJECT_ROOT / path
+
+
+def session_stem(value: str | None) -> str:
+    return Path(value).stem if value else ""
+
+
+def find_source_item(source_manifest: Path, session_id: str) -> dict:
+    with source_manifest.open("r", encoding="utf-8") as src:
+        for line in src:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            stems = {
+                str(item.get("uniq_id") or ""),
+                session_stem(item.get("audio_filepath")),
+                session_stem(item.get("rttm_filepath")),
+            }
+            if session_id in stems:
+                return item
+    raise FileNotFoundError(f"Session {session_id} not found in {source_manifest}")
+
+
+def resolve_session_file(item: dict, key: str, session_id: str, subdir: str, suffix: str) -> Path:
+    project_path = PROJECT_ROOT / "data" / subdir / f"{session_id}{suffix}"
+    if project_path.exists():
+        return project_path
+
+    value = item.get(key)
+    if value and Path(value).exists():
+        return Path(value)
+    return project_path
+
+
+def audio_duration(audio_path: Path, rttm_path: Path) -> float:
+    try:
+        import soundfile as sf
+
+        return float(sf.info(str(audio_path)).duration)
+    except Exception:
+        max_end = 0.0
+        with rttm_path.open("r", encoding="utf-8") as rttm:
+            for line in rttm:
+                parts = line.strip().split()
+                if len(parts) >= 5 and parts[0] == "SPEAKER":
+                    max_end = max(max_end, float(parts[3]) + float(parts[4]))
+        if max_end <= 0.0:
+            raise ValueError(f"Could not determine session duration from {audio_path} or {rttm_path}")
+        return max_end
+
+
+def build_single_session_chunk_manifest(args: argparse.Namespace) -> Path:
+    source_manifest = resolve_project_path(args.source_manifest)
+    generated_manifest = resolve_project_path(args.generated_manifest)
+    generated_manifest.parent.mkdir(parents=True, exist_ok=True)
+
+    item = find_source_item(source_manifest, args.session_id)
+    audio_path = resolve_session_file(item, "audio_filepath", args.session_id, "wavs_mono", ".flac")
+    rttm_path = resolve_session_file(item, "rttm_filepath", args.session_id, "rttm", ".rttm")
+    duration = audio_duration(audio_path, rttm_path)
+    reference_speakers = item.get("num_speakers") or args.max_speakers
+
+    offset = 0.0
+    index = 0
+    with generated_manifest.open("w", encoding="utf-8") as dst:
+        while offset < duration:
+            chunk_duration = min(args.chunk_sec, duration - offset)
+            if chunk_duration <= 0.0:
+                break
+            chunk = {
+                "audio_filepath": str(audio_path.resolve()).replace("\\", "/"),
+                "offset": round(offset, 4),
+                "duration": round(chunk_duration, 4),
+                "label": "infer",
+                "text": "-",
+                "num_speakers": reference_speakers,
+                "rttm_filepath": str(rttm_path.resolve()).replace("\\", "/"),
+                "uem_filepath": None,
+                "uniq_id": f"{args.session_id}_chunk{index:04d}",
+            }
+            dst.write(json.dumps(chunk, ensure_ascii=False) + "\n")
+            offset += args.chunk_hop_sec
+            index += 1
+
+    print(f"Generated chunk manifest: {generated_manifest} ({index} chunks)")
+    return generated_manifest
 
 
 def chunk_uniq_id(item: dict, index: int) -> str:
@@ -228,7 +328,7 @@ def main() -> None:
     torch = deps["torch"]
 
     model_path = resolve_project_path(args.model_path)
-    manifest = resolve_project_path(args.manifest)
+    manifest = resolve_project_path(args.manifest) if args.manifest is not None else build_single_session_chunk_manifest(args)
     out_rttm_dir = resolve_project_path(args.out_rttm_dir)
     out_rttm_dir.mkdir(parents=True, exist_ok=True)
 
