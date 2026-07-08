@@ -48,12 +48,12 @@ def parse_args() -> argparse.Namespace:
         help="Full-session AISHELL-4 test manifest used to locate --session-id.",
     )
     parser.add_argument("--session-id", default="L_R003S01C02")
-    parser.add_argument("--chunk-sec", type=float, default=120.0)
-    parser.add_argument("--chunk-hop-sec", type=float, default=120.0)
+    parser.add_argument("--chunk-sec", type=float, default=45.0)
+    parser.add_argument("--chunk-hop-sec", type=float, default=45.0)
     parser.add_argument(
         "--generated-manifest",
         type=Path,
-        default=Path("data/manifests/model_training/aishell4_test_L_R003S01C02_6spk_chunks.json"),
+        default=Path("data/manifests/model_training/aishell4_test_L_R003S01C02_6spk_c45_chunks.json"),
     )
     parser.add_argument(
         "--out-rttm-dir",
