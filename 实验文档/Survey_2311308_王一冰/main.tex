@@ -1,0 +1,520 @@
+% -*- coding: utf-8 -*-
+\documentclass[UTF8,a4paper,10pt]{ctexart}
+\usepackage[left=3.17cm, right=3.17cm, top=2.74cm, bottom=2.74cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx,subfig}
+\usepackage{float}
+\usepackage{cite}
+\usepackage{caption}
+\usepackage{enumerate}
+\usepackage{booktabs}
+\usepackage{multirow}
+\newcommand{\tabincell}[2]{\begin{tabular}{@{}#1@{}}#2\end{tabular}}
+
+\usepackage{ctex}
+\setCJKmainfont[ItalicFont=Noto Sans CJK SC Bold, BoldFont=Noto Serif CJK SC Black]{Noto Serif CJK SC}
+\newcommand{\yihao}{\fontsize{26pt}{36pt}\selectfont}
+\newcommand{\erhao}{\fontsize{22pt}{28pt}\selectfont}
+\newcommand{\xiaoer}{\fontsize{18pt}{18pt}\selectfont}
+\newcommand{\sanhao}{\fontsize{16pt}{24pt}\selectfont}
+\newcommand{\xiaosan}{\fontsize{15pt}{22pt}\selectfont}
+\newcommand{\sihao}{\fontsize{14pt}{21pt}\selectfont}
+\newcommand{\banxiaosi}{\fontsize{13pt}{19.5pt}\selectfont}
+\newcommand{\xiaosi}{\fontsize{12pt}{18pt}\selectfont}
+\newcommand{\dawuhao}{\fontsize{11pt}{11pt}\selectfont}
+\newcommand{\wuhao}{\fontsize{10.5pt}{15.75pt}\selectfont}
+
+\usepackage{ctexcap}
+\CTEXsetup[name={,、},number={ \chinese{section}}]{section}
+\CTEXsetup[name={（,）},number={\chinese{subsection}}]{subsection}
+\CTEXsetup[name={,.},number={\arabic{subsubsection}}]{subsubsection}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{\kaishu \leftmark}
+\rhead{\kaishu 语音信息处理大作业}
+\lfoot{}
+\cfoot{\thepage}
+\rfoot{}
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\newcommand{\HRulegrossa}{\rule{\linewidth}{1.2mm}}
+
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\floatname{algorithm}{Algorithm}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\usepackage{lipsum}
+\makeatletter
+\newenvironment{breakablealgorithm}
+  {\begin{center}
+     \refstepcounter{algorithm}
+     \hrule height.8pt depth0pt \kern2pt
+     \renewcommand{\caption}[2][\relax]{%
+      {\raggedright\textbf{\ALG@name~\thealgorithm} ##2\par}%
+      \ifx\relax##1\relax
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##2}%
+      \else
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##1}%
+      \fi
+      \kern2pt\hrule\kern2pt
+     }
+  }{\kern2pt\hrule\relax\end{center}}
+\makeatother
+
+\usepackage{xcolor}
+\usepackage{listings}
+\lstset{
+breaklines,
+basicstyle=\small,
+escapeinside=``,
+keywordstyle=\color{ blue!70} \bfseries,
+commentstyle=\color{red!50!green!50!blue!50},
+stringstyle=\ttfamily,
+extendedchars=false,
+linewidth=\textwidth,
+numbers=left,
+numberstyle=\tiny \color{blue!50},
+frame=trbl
+rulesepcolor= \color{ red!20!green!20!blue!20}
+}
+
+\usepackage[colorlinks,linkcolor=black,anchorcolor=blue]{hyperref}
+
+\usepackage{enumitem,amssymb}
+\newlist{todolist}{itemize}{2}
+\setlist[todolist]{label=$\square$}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}\hspace{-2.5pt}}
+\newcommand{\wontfix}{\rlap{$\square$}{\large\hspace{1pt}\xmark}}
+
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{eso-pic}
+\newcommand{\watermark}[3]{\AddToShipoutPictureBG{
+\parbox[b][\paperheight]{\paperwidth}{\vfill\centering%
+\tikz[remember picture, overlay]%
+  \node [rotate = #1, scale = #2] at (current page.center)%
+    {\textcolor{gray!80!cyan!30!magenta!30}{#3}};\vfill}}}
+
+%———————————————正文——————————————————————
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+    \includegraphics[width=0.8\textwidth]{NKU.png}\\[1cm]
+    \textsc{\Huge \kaishu{\textbf{南\ \ \ \ \ \ 开\ \ \ \ \ \ 大\ \ \ \ \ \ 学}} }\\[0.9cm]
+    \textsc{\huge \kaishu{\textbf{计\ \ 算\ \ 机\ \ 学\ \ 院}}}\\[0.5cm]
+    \textsc{\Large \textbf{语音信息处理大作业}}\\[0.8cm]
+    \HRule \\[0.9cm]
+    { \LARGE \bfseries 说话人日志技术调研与综述：\\ 从聚类式流程到神经网络日志模型}\\[0.4cm]
+    \HRule \\[2.0cm]
+    \centering
+    \textsc{\LARGE 王一冰}\\[0.5cm]
+    \textsc{\LARGE \kaishu{年级 : 2023级}}\\[0.5cm]
+    \textsc{\LARGE \kaishu{专业 : 计算机科学与技术}}\\[0.5cm]
+    \textsc{\LARGE \kaishu{指导教师 : 秦勇}}\\[0.5cm]
+    \vfill
+    {\Large \today}
+    \end{center}
+\end{titlepage}
+
+\newpage
+\thispagestyle{empty}
+\renewcommand{\abstractname}{\kaishu \sihao \textbf{摘要}}
+\begin{abstract}
+说话人日志（Speaker Diarization）旨在回答多人录音中“谁在什么时候说话”，是会议转写、
+访谈检索、客服分析和多说话人语音识别的重要前端。本文围绕说话人日志任务进行项目前
+调研，梳理从传统聚类式系统到端到端神经网络日志模型的发展脉络。聚类式系统通常由
+语音活动检测、说话人嵌入提取和聚类组成，具有模块清晰、易于复现和便于误差分析的优点；
+但其性能易受前端漏检、说话人数估计和重叠语音影响。近年来，EEND、TS-VAD、Sortformer
+等神经网络日志模型开始直接建模多条说话人活动流，为重叠语音和片段内说话人区分提供
+新的解决思路。本文进一步关注远场会议、多通道采集、未知说话人数和重叠语音等典型难点，
+并梳理 NeMo、pyannote.audio、Sortformer 等工具或模型所代表的不同技术路线，为后续大作业
+选题前的任务理解和技术判断提供依据。
+
+\noindent \textbf{关键词：}说话人日志，聚类式日志，端到端日志，多通道会议，Sortformer
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+\watermark{60}{10}{NKU}
+\setcounter{page}{1}
+
+
+
+\section{问题定义}
+
+说话人日志旨在将一段包含一名或多名说话人的音频划分为若干带有说话人标签的时间区间，回答
+“谁在什么时候说话”。给定音频信号 $x(t)$，系统输出可表示为
+\[
+\mathcal{Y}=\{(b_i,e_i,s_i)\}_{i=1}^{N},
+\]
+其中 $b_i,e_i$ 分别为第 $i$ 个语音片段的起止时间，$s_i$ 为该片段对应的说话人标签。这里的
+说话人标签通常是录音内部的一致性编号，而不是现实世界中的姓名或身份。因此，说话人日志与
+说话人识别、说话人验证既相关又不同：它不要求判断某人是否为注册用户，而强调在长音频内部
+正确切分说话边界并保持同一说话人的标签一致。
+
+评价指标通常采用说话人日志错误率（Diarization Error Rate, DER）：
+\[
+\mathrm{DER}=
+\frac{T_{\mathrm{FA}}+T_{\mathrm{MISS}}+T_{\mathrm{CONF}}}{T_{\mathrm{REF}}},
+\]
+其中 $T_{\mathrm{FA}}$ 表示系统误报为语音的时长，$T_{\mathrm{MISS}}$ 表示参考语音被漏检的时长，
+$T_{\mathrm{CONF}}$ 表示语音已检测到但说话人标签错误的时长，$T_{\mathrm{REF}}$ 为参考语音总时长。
+这个指标把语音活动检测、边界定位和说话人归属同时纳入考察，因此比单纯的分类准确率更适合
+衡量会议日志系统。实际比较时还必须说明 collar、是否忽略重叠语音、是否已知说话人数等设置，
+否则不同论文或系统之间的 DER 并不具备直接可比性。
+
+从应用角度看，说话人日志通常位于自动会议转写系统之前或之后：它可以帮助 ASR 输出带说话人
+标签的文字，也可以作为会议检索、客服质检、访谈分析和多说话人语音理解的基础模块。相比孤立的
+音频分类任务，说话人日志更贴近真实长音频处理，难点也更综合，包括远场噪声、混响、短语音片段、
+快速说话人切换、重叠说话和未知说话人数等。
+
+从任务边界看，说话人日志至少包含三个层次的问题。第一是\textbf{语音边界问题}：系统需要判断
+哪些时刻有人说话，哪些时刻是静音、噪声或非语音事件。第二是\textbf{说话人一致性问题}：
+系统不一定知道说话人的真实姓名，但必须在同一段录音内部保持标签一致，例如同一个人在不同
+时间再次发言时仍应被分到同一标签。第三是\textbf{重叠活动问题}：多人同时说话时，一个时刻
+可能对应多个说话人标签，单一标签假设会天然丢失部分信息。这三个层次分别对应 VAD、说话人
+表征与聚类、多标签活动建模等不同技术路线。
+
+在实际评测中，还需要区分若干容易混淆的设置：
+\begin{enumerate}
+  \item \textbf{离线与在线：}离线系统可以利用整段音频的全局信息，在线系统则需要边听边输出，
+  因而还要考虑延迟和说话人缓存维护。
+  \item \textbf{已知与未知说话人数：}若已知整场录音中有几名说话人，聚类难度会明显下降；若
+  说话人数未知，系统还要同时完成人数估计。
+  \item \textbf{忽略与计入重叠语音：}许多实验会在 DER 计算中忽略重叠区域，这能降低任务难度；
+  若计入重叠语音，系统必须具备多标签输出能力。
+  \item \textbf{单通道与多通道：}单通道系统更通用，多通道系统则可以利用空间信息，但也需要
+  处理不同麦克风通道之间的质量差异。
+\end{enumerate}
+
+因此，说话人日志并不是一个单独模型即可完整定义的任务，而是由数据场景、评测口径和系统假设
+共同决定。前期 Survey 的一个重要目的，就是在真正实现前先把这些条件区分清楚，避免把不同
+难度设置下的 DER 数值直接混为一谈。
+
+\section{发展历史与主要分类方法}
+
+\subsection{从分割聚类到说话人嵌入}
+
+从整体脉络看，说话人日志的发展大致经历了三个阶段：第一阶段依赖手工声学特征和统计模型，
+重点是把长音频切成相对纯净的短段；第二阶段引入 i-vector、x-vector 等说话人嵌入，把日志
+问题转化为嵌入空间中的相似度建模和聚类；第三阶段则开始使用端到端或半端到端神经网络，
+直接预测说话人活动流或对多个子模块联合建模。Park 等人的综述对传统模块化方法和神经网络
+方法进行了较系统的梳理\cite{park2021review}。对课程项目而言，理解这条发展线索很重要：
+不同方法不是互相孤立的，而是在不断解决上一代方法暴露出的边界、表征和重叠语音问题。
+
+\subsubsection{传统分割聚类阶段}
+
+早期说话人日志多采用“先分割、再聚类”的模块化路线。系统先通过声学变化检测或语音活动检测
+获得候选语音片段，再根据声学特征判断哪些片段来自同一说话人。常见特征包括 MFCC、能量、
+谱相关特征等；常见后端包括 GMM、BIC 准则、层次聚类和逐步合并策略。这一阶段的思想非常
+直观：如果相邻两段音频的声学分布差异较大，就可能发生了说话人切换；如果两段音频声学分布
+相近，就可能属于同一说话人。
+
+这类方法的优点是结构清晰、对训练数据依赖较小，也便于解释每一步的作用。但其不足同样明显：
+一方面，手工特征很难稳定刻画真实说话人身份，容易受到信道、噪声和情绪状态影响；另一方面，
+真实会议中存在大量短句、插话和重叠说话，声学变化不一定对应说话人变化，说话人变化也不一定
+产生明显的声学突变。因此，传统方法适合作为任务理解的起点，却难以单独支撑复杂远场会议场景。
+
+\subsubsection{说话人嵌入阶段}
+
+随着说话人识别研究的发展，说话人嵌入逐渐成为日志系统的核心。i-vector 将变长语音映射到
+低维说话人空间，便于后续相似度计算；x-vector 进一步用深度神经网络学习说话人表征，使嵌入
+对说话人身份更敏感。此时，系统关注的重点从“如何用声学变化切分音频”转向“如何让同一说话人
+的片段在嵌入空间中更接近，不同说话人的片段更远离”。这种转变使说话人日志能够更多借用
+说话人识别领域的成果。
+
+嵌入方法也改变了聚类后端的设计。系统不再只比较局部声学统计量，而是构造整个录音中所有
+片段之间的相似度矩阵，再使用谱聚类、凝聚层次聚类或概率图模型完成全局划分。VBx 系统将
+x-vector 序列与贝叶斯 HMM 结合，利用时序约束改善说话人切换建模，在多个日志基准上体现出
+较强竞争力\cite{landini2020vbx}。这说明，好的嵌入还需要合理的时序建模配合：说话人不会在
+每一帧随机切换，日志系统应当利用这种时间连续性。
+
+\subsubsection{神经嵌入与多尺度建模}
+
+近年的说话人嵌入模型进一步引入卷积结构、注意力统计池化和多尺度建模。TitaNet 使用一维深度
+可分离卷积和全局上下文建模，在保持较高效率的同时获得较好的说话人表示能力
+\cite{koluguri2022titanet}。这类模型的目标不是逐帧判断语音内容，而是从一段语音中提取能够
+代表说话人身份的向量。因此，嵌入片段的长度、纯净度和是否包含重叠语音都会影响后续聚类。
+
+多尺度方法进一步指出，日志系统存在一个天然矛盾：长窗口能够提供更稳定的说话人表示，但时间
+边界较粗；短窗口能够提供更细的时间分辨率，但说话人表征不够稳定。Park 等提出的多尺度动态
+加权方法正是围绕这一矛盾展开\cite{park2022multiscale}。这对后续项目很有启发：说话人日志
+不是单纯追求更强的嵌入模型，还要同时处理时间边界精度、说话人表征稳定性和聚类鲁棒性之间的
+折中。
+
+\subsection{聚类式日志系统}
+
+当前较成熟、易复现的路线仍是聚类式日志系统。典型流程包括语音活动检测（VAD）、说话人切分、
+嵌入提取、相似度矩阵构建、说话人数估计和聚类。NeMo 提供了包括 VAD、TitaNet 嵌入、多尺度
+谱聚类和日志评测在内的工具链，是课程项目中较适合复现的框架\cite{kuchaiev2019nemo}。
+MarbleNet 作为轻量级一维时间--通道可分离卷积 VAD，可作为语音活动检测前端\cite{jia2021marblenet}；
+pyannote.audio 则提供了神经网络分割、嵌入和日志组件，是理解现代日志系统工程化实现的另一个
+重要参考\cite{bredin2020pyannote}。
+
+聚类式方法的优点在于模块清楚、可解释性强、便于消融分析。例如，当 DER 较高时，可以继续
+拆分为 FA、MISS 和 CONF，判断问题主要来自 VAD、边界截断还是说话人混淆。为了更清楚理解
+这类系统，可以把它拆成以下几个关键环节：
+
+\begin{enumerate}
+  \item \textbf{语音活动检测：}决定哪些时间属于语音，直接影响 FA 和 MISS。VAD 看似只是前端，
+  但它实际上决定了后端能够看到哪些语音证据。
+  \item \textbf{分段与嵌入提取：}把语音区间切成适合提取声纹的窗口，并将其映射为定长向量。
+  这一环节需要在时间分辨率和嵌入稳定性之间折中。
+  \item \textbf{相似度建模与聚类：}根据嵌入之间的相似度判断哪些片段来自同一说话人，同时还要
+  估计或指定说话人数。
+  \item \textbf{后处理与评测：}把聚类标签还原成 RTTM 时间段，并在统一 collar、重叠语音处理
+  和说话人数条件下计算 DER。
+\end{enumerate}
+
+这一拆解也暴露出聚类式系统的局限：第一，VAD 漏检的语音通常无法被后端恢复；第二，嵌入质量
+会被短语音和重叠说话污染；第三，说话人数估计不准会造成过分裂或过合并；第四，传统聚类往往
+难以自然表示同一时刻多个说话人同时活动。因此，聚类式系统适合作为可靠 baseline 和误差分析
+框架，但不一定能解决真实会议中的全部难点。
+
+\subsection{端到端神经网络日志}
+
+端到端神经网络日志试图减少模块级误差传递。End-to-End Neural Diarization（EEND）将任务
+建模为多标签序列预测，直接输出多条说话人活动流，并通过 permutation-free objective 处理
+输出说话人顺序不确定的问题\cite{fujita2019eend}。后续 Self-Attention EEND 引入自注意力
+结构以建模更长上下文\cite{fujita2019saeend}。EEND 的重要意义在于，它把“是否有语音”和
+“是哪位说话人活动”统一到同一个序列建模框架中，因此比传统单标签聚类方法更自然地支持重叠
+说话。
+
+EEND 也引出了一系列新问题。首先，固定输出流数量会限制最大说话人数。EEND-EDA 使用
+encoder-decoder based attractors 来处理未知说话人数问题\cite{horiguchi2020eendeda}。
+其次，长会议直接端到端建模会受到显存和序列长度限制，实际系统往往仍需切片推理。再次，
+不同切片中的输出流编号未必对应同一真实说话人，这使得跨片段身份一致性成为端到端日志进入
+长会议场景前必须面对的问题。
+
+与聚类式系统相比，端到端模型的优势在于可以联合学习语音边界和说话人活动，不必把 VAD、
+嵌入和聚类完全割裂开来；它的困难则在于训练目标、输出流排列和说话人数变化都更复杂。尤其是
+permutation-free objective 的存在说明，说话人日志并不是普通的多标签分类：模型输出的第1个
+speaker head 并不天然等于参考标注中的第1个说话人，训练时必须允许输出流与参考说话人之间
+重新匹配。这个问题也是理解 EEND、Sortformer 等模型时最关键的概念之一。
+
+\subsection{目标说话人与条件式日志}
+
+另一类方法是目标说话人语音活动检测（Target-Speaker VAD, TS-VAD）。TS-VAD 给定目标说话人
+的声纹表示，判断该目标在每一帧是否活动，因此可以把日志问题转化为多个目标说话人的活动检测
+问题。基于 Transformer 的 TS-VAD 工作进一步将目标说话人信息与序列建模结合，用于改善端到端
+日志中的说话人活动判断\cite{wang2022tsvad}。这类方法在已知或可估计目标说话人 profile 的
+场景中很有吸引力，尤其适合重叠说话较多的会议；但它也依赖较好的目标说话人表征，且通常需要
+先获得候选说话人或说话人数。
+
+从方法分类上看，TS-VAD 介于聚类式系统和端到端日志之间。一方面，它仍然需要目标说话人的
+声纹表示，常常依赖前置聚类或注册语音；另一方面，它的输出是逐帧活动概率，可以自然表示多个
+目标说话人在同一时刻同时活动。因此，它体现了一种重要思想：与其让系统在未知身份空间中直接
+聚类，不如先构造候选说话人条件，再逐个判断这些说话人是否活跃。这个思想对重叠语音和已知
+参会人会议尤其有价值。
+
+\subsection{多通道与远场会议}
+
+真实会议常由麦克风阵列采集。多通道音频提供空间冗余，也带来通道质量差异：同一说话人在
+不同麦克风上的能量、混响和信噪比可能不同。作为后续小组项目的候选场景之一，AISHELL-4
+提供真实中文多通道会议录音，并包含 ASR、语音增强、分离和说话人日志等任务标注
+\cite{fu2021aishell4}。在 Survey 阶段，AISHELL-4 更适合作为“可能采用的真实会议测试环境”
+来理解，而不是已经完成实验的默认场景。
+
+多通道日志可以从信号级、特征级和决策级三个层面利用通道信息。信号级方法包括波束形成和
+通道选择，目标是先得到更清晰的单通道音频；特征级方法在模型内部融合多通道特征；决策级
+方法则让每个通道独立产生 VAD 或日志结果，再进行投票、并集或加权融合。对于前期项目规划，
+决策级方法实现成本较低，便于分析不同通道对 VAD 的影响；但它是否有效取决于通道间错误是否
+互补，以及融合策略能否避免把局部噪声也一并保留下来。
+
+这部分调研也提示我，远场会议日志不能只从模型结构角度理解。麦克风阵列位置、说话人距离、
+房间混响和局部噪声都会改变不同通道上的语音可检测性。某个通道上清晰的语音，在另一个通道上
+可能被噪声或混响掩盖；反过来，简单地把所有通道平均也可能稀释局部清晰的语音证据。因此，
+多通道信息既可能提升召回，也可能引入额外误报，关键在于融合策略是否能区分通道质量和错误
+来源。
+
+\section{候选复现与尝试方向}
+
+通过上述调研，我认为说话人日志方向可以从几类候选路线中选择后续大作业的复现或尝试对象。
+这里的重点不是提前确定最终实现方案，而是理解不同路线的技术假设、复现难度和可分析空间。
+如果后续进入具体实现阶段，再根据数据可获得性、算力条件和小组分工确定最终路线。
+
+\subsection{NeMo聚类式日志pipeline}
+
+NeMo 的 speaker diarization pipeline 是最适合作为入门复现对象的路线之一。它提供了较完整的
+模块化流程：先用 VAD 找出语音区域，再用说话人嵌入模型提取声纹表示，随后构造相似度矩阵并
+进行聚类，最后输出 RTTM 格式的说话人日志\cite{kuchaiev2019nemo}。这一流程与传统聚类式
+说话人日志高度一致，能够清楚地对应到任务中的三类误差：VAD 影响 FA 和 MISS，嵌入与聚类影响
+CONF，说话人数估计则影响过分裂或过合并。
+
+从技术理解上看，NeMo pipeline 的价值不只在于“有现成代码”，更在于它提供了一个可以拆解的
+系统框架。MarbleNet 可用于理解轻量级神经网络 VAD 如何把帧级语音概率转化为语音区间
+\cite{jia2021marblenet}；TitaNet 可用于理解说话人嵌入如何把变长语音压缩成定长声纹向量
+\cite{koluguri2022titanet}；多尺度聚类则体现了短窗口时间分辨率和长窗口声纹稳定性之间的
+折中\cite{park2022multiscale}。如果选择这一路线，较适合重点分析不同模块的错误传播，而不是
+只报告一个最终 DER。
+
+这一路线的不足也比较明确：各模块并非端到端优化，VAD 漏检的语音通常无法被后端恢复，短语音
+或重叠语音也会污染嵌入。因此，NeMo pipeline 更适合作为可靠 baseline 和误差分析框架，而不是
+天然解决重叠语音和长会议全部问题的最终答案。
+
+\subsection{pyannote.audio等神经网络组件化工具}
+
+pyannote.audio 代表了另一类候选方向：它不是单一模型，而是一组面向说话人日志的神经网络
+组件，包括语音分割、重叠检测、嵌入提取和日志推理等模块\cite{bredin2020pyannote}。相比
+NeMo 聚类式 pipeline，pyannote.audio 更强调把日志任务拆成可训练的神经网络组件，并通过
+统一接口组合成完整系统。它适合用来理解现代日志系统如何从传统手工特征和阈值逐步过渡到
+神经网络分割与表示学习。
+
+它的价值在于帮助理解现代日志工具链：模型本身只是其中一部分，数据标注格式、后处理、阈值
+选择、评测协议和可复现脚本同样重要。不过，它的环境依赖、模型版本和数据格式较多，若深入
+训练或替换模块，工程复杂度会明显高于只调用一个固定 pipeline。
+
+\subsection{Sortformer等端到端日志模型}
+
+Sortformer 则代表更偏端到端日志模型的方向。它的核心思想是通过排序机制处理说话人输出流的
+排列问题，输出多条具有时间结构的说话人活动流\cite{park2024sortformer}。与传统 VAD 不同，
+Sortformer 不是只判断语音/非语音，而是在多个 speaker head 上预测活动概率。因此，它从模型
+形式上更接近“局部说话人日志”：在一个片段内部，模型可以同时学习语音边界、局部说话人区分和
+重叠活动。
+
+从原理上看，Sortformer 至少涉及两个值得重点理解的问题。第一是排列不确定性：模型输出的多条
+说话人活动流本身没有固定身份顺序，而训练标签中的说话人编号也可以任意交换。如果训练目标不能
+处理这种排列等价性，模型就可能学习到不稳定的 speaker head 分工。第二是排序和时间结构：
+说话人日志不仅要知道哪些说话人在活动，还要把活动流与语音片段的时间顺序对应起来。Sortformer
+通过排序相关的监督设计，使说话人活动流与时间结构之间建立更清晰的关系。
+
+Survey 阶段不适合直接预设 Sortformer 的工程改造方案，但它提供了一个很有价值的观察角度：
+说话人日志可以不再被理解为“先 VAD 再聚类”的固定流程，而可以被建模为多条说话人活动流的
+序列预测问题。若后续考虑这一路线，需要重点理解其输入长度限制、输出流含义、排列处理方式和
+评测方式。
+
+\subsection{数据资源与场景选择}
+
+数据集方面，远场会议语音比近讲语音更能体现说话人日志的实际难点。AISHELL-4 提供真实中文
+多通道会议录音和说话人日志标注\cite{fu2021aishell4}，适合作为理解多通道会议场景的候选
+数据资源。DIHARD、AMI、CALLHOME、VoxConverse 等数据集也常用于评估说话人日志系统的泛化性。
+在前期调研中，我更关注这些数据集所代表的任务差异：电话语音和会议语音的信道不同，近讲和
+远场录音的噪声不同，双人对话和多人会议的说话人切换模式也不同。
+
+因此，后续大作业如果选择说话人日志方向，需要先明确实验场景：是复现一个标准聚类式 baseline，
+还是分析多通道会议中的 VAD 和通道差异，或者理解端到端日志模型在片段内活动流建模上的优势。
+不同场景对应不同数据、工具和评测重点。这个判断本身就是 Survey 阶段的重要收获。
+
+\section{未来方向}
+
+综合上述调研，我认为说话人日志未来仍有几个重要方向。首先是重叠语音建模。真实会议中多人
+同时说话非常常见，而传统聚类式系统往往更适合单一主说话人假设。EEND、TS-VAD 和 Sortformer
+等模型说明，多标签活动流是处理重叠语音的自然方式，但如何在长会议和未知说话人数下稳定工作
+仍然需要进一步研究。
+
+重叠语音问题的困难不只是“检测是否重叠”。如果只知道某一时刻存在重叠，却不知道重叠中的
+每个说话人是谁，日志系统仍然无法给出完整结果。因此，未来方法需要同时解决重叠检测、重叠
+区域的说话人归属以及重叠语音对声纹嵌入的污染问题。传统聚类式方法可以加入重叠检测器或
+后处理规则，端到端模型则可以通过多标签活动流直接表示多个说话人，但二者都需要更稳健的
+训练数据和评测协议。
+
+其次是未知说话人数和跨片段身份一致性。无论是聚类式系统还是神经网络日志模型，都需要处理
+“录音中到底有几个人”以及“切片之间的标签如何对齐”这两个问题。聚类式方法依赖簇数估计；
+端到端模型依赖输出头或 attractor；流式模型还要在低延迟条件下维护说话人缓存。Streaming
+Sortformer 等工作开始关注在线场景中的说话人缓存和到达时间排序问题\cite{medennikov2025streaming}，
+说明日志系统正在从离线文件处理走向实时会议理解。
+
+未知人数问题尤其值得关注。固定输出头模型在说话人数较少时会浪费容量，在说话人数较多时又
+可能无法覆盖全部说话人；聚类式系统虽然可以估计簇数，但估计错误会直接导致过分裂或过合并。
+更理想的系统应当能随着录音内容动态产生、合并或关闭说话人表示，并在长时间间隔后识别同一
+说话人的再次出现。这也是离线日志、在线日志和说话人识别技术交汇最明显的方向之一。
+
+最后是日志与 ASR、会议理解和多模态信息的结合。单独输出 RTTM 时间段只是第一步，实际应用
+更关心“谁说了什么、何时说、在什么上下文中说”。因此，未来系统可能会把说话人日志、语音识别、
+语义摘要、视觉线索和会议结构建模结合起来。对于本次大作业而言，前期 Survey 的作用是帮助
+明确技术地图：聚类式日志适合复现和误差分析，端到端日志适合探索边界和重叠建模，多通道会议
+则提供了更真实也更困难的测试场景。
+
+此外，评测方法本身也值得继续关注。DER 虽然是最常用指标，但它会受到 collar、重叠语音处理、
+说话人数条件和参考标注细节影响；在面向真实会议应用时，还可能需要结合 Jaccard Error Rate、
+说话人转写一致性、实时延迟和下游会议摘要质量等指标。也就是说，说话人日志未来不仅是模型
+结构的竞争，也包括任务定义、评测口径和下游应用需求之间的重新平衡。
+
+对个人后续学习而言，这次 Survey 也形成了一个较清晰的技术路线图：先用聚类式系统理解完整
+pipeline 和 DER 误差来源，再阅读端到端模型理解多说话人活动流与排列问题，最后结合真实会议
+数据理解噪声、混响、多通道和长音频带来的工程约束。这样的顺序比直接追逐最新模型更稳妥，
+也更适合课程大作业从调研走向实现。
+
+\newpage
+\begin{thebibliography}{99}
+\bibitem{park2021review}
+T. J. Park, N. Kanda, D. Dimitriadis, K. J. Han, S. Watanabe, and S. Narayanan.
+A review of speaker diarization: recent advances with deep learning.
+\textit{Computer Speech \& Language}, 2022.
+
+\bibitem{landini2020vbx}
+F. Landini, J. Profant, M. Diez, and L. Burget.
+Bayesian HMM clustering of x-vector sequences in speaker diarization.
+\textit{arXiv:2012.14952}, 2020.
+
+\bibitem{kuchaiev2019nemo}
+O. Kuchaiev, J. Li, H. Nguyen, et al.
+NeMo: a toolkit for building AI applications using Neural Modules.
+\textit{arXiv:1909.09577}, 2019.
+
+\bibitem{jia2021marblenet}
+F. Jia, S. Majumdar, and B. Ginsburg.
+MarbleNet: deep 1D time-channel separable convolutional neural network for voice activity detection.
+\textit{ICASSP}, 2021.
+
+\bibitem{koluguri2022titanet}
+N. R. Koluguri, T. Park, and B. Ginsburg.
+TitaNet: neural model for speaker representation with 1D depth-wise separable convolutions and global context.
+\textit{ICASSP}, 2022.
+
+\bibitem{park2022multiscale}
+T. J. Park, N. R. Koluguri, J. Balam, and B. Ginsburg.
+Multi-scale speaker diarization with dynamic scale weighting.
+\textit{Interspeech}, 2022.
+
+\bibitem{fu2021aishell4}
+Y. Fu, L. Cheng, S. Lv, et al.
+AISHELL-4: an open source dataset for speech enhancement, separation, recognition and speaker diarization in conference scenario.
+\textit{Interspeech}, 2021.
+
+\bibitem{fujita2019eend}
+Y. Fujita, N. Kanda, S. Horiguchi, K. Nagamatsu, and S. Watanabe.
+End-to-end neural speaker diarization with permutation-free objectives.
+\textit{Interspeech}, 2019.
+
+\bibitem{fujita2019saeend}
+Y. Fujita, N. Kanda, S. Horiguchi, Y. Xue, K. Nagamatsu, and S. Watanabe.
+End-to-end neural speaker diarization with self-attention.
+\textit{ASRU}, 2019.
+
+\bibitem{horiguchi2020eendeda}
+S. Horiguchi, Y. Fujita, S. Watanabe, Y. Xue, and K. Nagamatsu.
+End-to-end speaker diarization for an unknown number of speakers with encoder-decoder based attractors.
+\textit{Interspeech}, 2020.
+
+\bibitem{bredin2020pyannote}
+H. Bredin, R. Yin, J. M. Coria, et al.
+pyannote.audio: neural building blocks for speaker diarization.
+\textit{ICASSP}, 2020.
+
+\bibitem{wang2022tsvad}
+D. Wang, X. Xiao, N. Kanda, T. Yoshioka, and J. Wu.
+Target speaker voice activity detection with transformers and its integration with end-to-end neural diarization.
+\textit{arXiv:2208.13085}, 2022.
+
+\bibitem{park2024sortformer}
+T. Park, I. Medennikov, K. Dhawan, et al.
+Sortformer: seamless integration of speaker diarization and ASR by bridging timestamps and tokens.
+\textit{arXiv:2409.06656}, 2024.
+
+\bibitem{medennikov2025streaming}
+I. Medennikov, T. Park, W. Wang, et al.
+Streaming Sortformer: speaker cache-based online speaker diarization with arrival-time ordering.
+\textit{arXiv:2507.18446}, 2025.
+\end{thebibliography}
+
+\end{document}
